@@ -1,104 +1,112 @@
 "use client";
 
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import Select from "@/components/ui/Select";
-import Input from "@/components/ui/Input";
-import Button from "@/components/ui/Button";
-import SkeletonLoader from "./SkeletonLoader";
-import { generateContent } from "@/lib/api";
-
-const CONTENT_TYPE_OPTIONS = [
-  { label: "SEO Article", value: "seo_article" },
-  { label: "LinkedIn Post", value: "linkedin_post" },
-  { label: "Twitter Thread", value: "twitter_thread" },
-];
 
 interface GenerationSettingsProps {
-  transcript: string;
-  onResult: (content: string, wordsUsed: number, wordsRemaining: number) => void;
-  onBack: () => void;
+  onSettingsChange: (settings: { contentType: string; keywords: string[] }) => void;
 }
 
-export default function GenerationSettings({
-  transcript,
-  onResult,
-  onBack,
-}: GenerationSettingsProps) {
+const contentTypeOptions = [
+  { value: "seo_article", label: "📄 SEO Article" },
+  { value: "linkedin", label: "💼 LinkedIn Post" },
+  { value: "twitter_thread", label: "🐦 Twitter Thread" },
+];
+
+export default function GenerationSettings({ onSettingsChange }: GenerationSettingsProps) {
   const [contentType, setContentType] = useState("seo_article");
-  const [keywordsInput, setKeywordsInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [keywordInput, setKeywordInput] = useState("");
+  const [keywords, setKeywords] = useState<string[]>([]);
 
-  const handleGenerate = async () => {
-    setError("");
-    setLoading(true);
-    try {
-      const keywords = keywordsInput
-        .split(",")
-        .map((k) => k.trim())
-        .filter(Boolean);
-
-      const data = await generateContent({
-        transcript,
-        content_type: contentType,
-        keywords,
-      });
-
-      onResult(data.content, data.words_used, data.words_remaining);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Generation failed. Please try again.");
-    } finally {
-      setLoading(false);
+  const addKeyword = (value: string) => {
+    const trimmed = value.trim().replace(/,$/, "");
+    if (trimmed && !keywords.includes(trimmed)) {
+      const next = [...keywords, trimmed];
+      setKeywords(next);
+      onSettingsChange({ contentType, keywords: next });
     }
+    setKeywordInput("");
+  };
+
+  const removeKeyword = (kw: string) => {
+    const next = keywords.filter((k) => k !== kw);
+    setKeywords(next);
+    onSettingsChange({ contentType, keywords: next });
+  };
+
+  const handleContentTypeChange = (val: string) => {
+    setContentType(val);
+    onSettingsChange({ contentType: val, keywords });
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-white mb-1">Step 3: Generation Settings</h2>
-        <p className="text-slate-400 text-sm">
-          Choose the output format and add any keywords you want included.
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="space-y-5"
+    >
+      <Select
+        label="Content Type"
+        options={contentTypeOptions}
+        value={contentType}
+        onChange={handleContentTypeChange}
+      />
+
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-slate-300">
+          Keywords <span className="text-slate-500 font-normal">(optional)</span>
+        </label>
+        <input
+          type="text"
+          value={keywordInput}
+          onChange={(e) => setKeywordInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === ",") {
+              e.preventDefault();
+              addKeyword(keywordInput);
+            }
+          }}
+          onBlur={() => keywordInput.trim() && addKeyword(keywordInput)}
+          placeholder="Type keyword and press Enter..."
+          className="w-full bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-violet-500/60 focus:ring-2 focus:ring-violet-500/20 transition-all duration-200 py-2.5 px-4 text-sm"
+        />
+
+        <AnimatePresence>
+          {keywords.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="flex flex-wrap gap-2 pt-1"
+            >
+              {keywords.map((kw) => (
+                <motion.span
+                  key={kw}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 bg-violet-500/15 border border-violet-500/30 text-violet-300 rounded-full text-xs font-medium"
+                >
+                  {kw}
+                  <button
+                    onClick={() => removeKeyword(kw)}
+                    className="text-violet-400 hover:text-white transition-colors leading-none"
+                    aria-label={`Remove ${kw}`}
+                  >
+                    ✕
+                  </button>
+                </motion.span>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <p className="text-slate-600 text-xs">
+          Keywords will be naturally integrated into the generated content.
         </p>
       </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Select
-          label="Content Type"
-          options={CONTENT_TYPE_OPTIONS}
-          value={contentType}
-          onChange={(e) => setContentType(e.target.value)}
-          disabled={loading}
-        />
-        <Input
-          label="Required Keywords (comma-separated)"
-          placeholder="e.g. AI, content marketing, SEO"
-          value={keywordsInput}
-          onChange={(e) => setKeywordsInput(e.target.value)}
-          disabled={loading}
-        />
-      </div>
-
-      {error && (
-        <div className="glass-card p-4 border-red-500/30 bg-red-500/5">
-          <p className="text-red-400 text-sm">{error}</p>
-        </div>
-      )}
-
-      {loading && (
-        <div className="glass-card p-6">
-          <p className="text-slate-400 text-sm mb-4">Generating your content with GPT-4.1…</p>
-          <SkeletonLoader />
-        </div>
-      )}
-
-      <div className="flex gap-3 justify-end">
-        <Button variant="ghost" size="sm" onClick={onBack} disabled={loading}>
-          ← Back
-        </Button>
-        <Button onClick={handleGenerate} loading={loading} disabled={loading}>
-          Generate Content
-        </Button>
-      </div>
-    </div>
+    </motion.div>
   );
 }
