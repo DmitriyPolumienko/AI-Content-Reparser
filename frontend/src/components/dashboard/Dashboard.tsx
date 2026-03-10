@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import Image from "next/image";
 import UrlInput from "./UrlInput";
 import SubtitleEditor from "./SubtitleEditor";
 import GenerationSettings from "./GenerationSettings";
@@ -90,7 +91,7 @@ export default function Dashboard() {
       <header className="relative z-10 border-b border-white/5 bg-black/30 backdrop-blur-xl sticky top-0">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 group">
-            <img src="/icon.svg" alt="V2Post Logo" width={28} height={28} className="rounded-lg shadow-glow" />
+            <Image src="/logo-icon.png" alt="V2Post" width={28} height={28} />
             <span className="font-bold text-white text-sm font-display">
               V2<span className="gradient-text">Post</span>
             </span>

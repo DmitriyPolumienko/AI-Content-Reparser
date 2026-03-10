@@ -26,9 +26,8 @@ export const metadata: Metadata = {
     canonical: "https://v2post.io",
   },
   icons: {
-    icon: [
-      { url: "/favicon.svg", type: "image/svg+xml" },
-    ],
+    icon: '/favicon.png',
+    apple: '/favicon.png',
   },
   openGraph: {
     type: "website",
@@ -40,9 +39,9 @@ export const metadata: Metadata = {
       "V2Post uses AI to convert YouTube videos into publication-ready content. Generate SEO articles, LinkedIn posts, and Twitter threads in seconds. Try free today.",
     images: [
       {
-        url: "/icon.svg",
-        width: 48,
-        height: 48,
+        url: "/logo-icon.png",
+        width: 512,
+        height: 512,
         alt: "V2Post Logo",
       },
     ],
