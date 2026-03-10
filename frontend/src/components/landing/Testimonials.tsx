@@ -1,49 +1,50 @@
 "use client";
 
 import { motion } from "framer-motion";
-import Card from "@/components/ui/Card";
+
+const featured = {
+  quote:
+    "AI Content Reparser cut my content production time by 80%. I used to spend 3 hours writing one article. Now it takes 10 minutes. This tool is an absolute game-changer for creators.",
+  name: "Alex Rivera",
+  role: "YouTube Creator · 2.1M Subscribers",
+};
 
 const testimonials = [
   {
-    name: "Alex Martinez",
-    handle: "@alexcreates",
-    role: "YouTube Creator · 480K subs",
-    avatar: "AM",
-    avatarColor: "from-blue-500 to-cyan-500",
-    text: "I used to spend 4 hours turning each video into a blog post. Now it takes 2 minutes. The SEO articles are genuinely good — I barely have to touch them.",
+    text: "I was skeptical at first, but the quality blew me away. The SEO articles are actually readable, not robotic. My organic traffic jumped 140% in 3 months.",
+    name: "Sarah Chen",
+    role: "Content Strategist at TechFlow",
+    initials: "SC",
+    color: "from-violet-600 to-blue-500",
   },
   {
-    name: "Priya Sharma",
-    handle: "@priyamarketing",
-    role: "Content Strategist · Agency",
-    avatar: "PS",
-    avatarColor: "from-violet-500 to-pink-500",
-    text: "We repurpose all our clients' podcasts and webinars with this tool. The LinkedIn posts it generates get 3× more engagement than what we wrote manually.",
+    text: "Finally a tool that understands my niche. The keyword insertion is natural, not forced. My LinkedIn posts now consistently hit 1000+ engagements.",
+    name: "Marcus Williams",
+    role: "B2B Marketing Director",
+    initials: "MW",
+    color: "from-cyan-500 to-teal-400",
   },
   {
-    name: "Tom Fischer",
-    handle: "@tomtechtalk",
-    role: "Tech Blogger · 200K newsletter",
-    avatar: "TF",
-    avatarColor: "from-emerald-500 to-teal-500",
-    text: "The Twitter thread format is exceptional. It nails the hook, the pacing, and the CTA every single time. My follower growth has doubled since I started.",
+    text: "The speed is insane. Drop a link, pick a format, get content. I've repurposed my entire 200-video archive into blog posts in two weekends.",
+    name: "Priya Patel",
+    role: "Podcast Host & Writer",
+    initials: "PP",
+    color: "from-emerald-500 to-cyan-500",
   },
 ];
 
-const containerVariants = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.15 } },
-};
-
-const cardVariants = {
-  hidden: { opacity: 0, y: 40 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
-};
-
 export default function Testimonials() {
   return (
-    <section id="testimonials" className="section-padding bg-slate-900/40">
-      <div className="max-w-7xl mx-auto">
+    <section id="testimonials" className="section-padding relative overflow-hidden">
+      {/* Subtle bg glow */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: "radial-gradient(ellipse at 50% 50%, rgba(124,58,237,0.06) 0%, transparent 70%)",
+        }}
+      />
+
+      <div className="max-w-7xl mx-auto relative z-10">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -52,56 +53,80 @@ export default function Testimonials() {
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
-          <span className="inline-block px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-medium mb-4">
+          <span className="inline-block px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-sm font-medium mb-4">
             Testimonials
           </span>
-          <h2 className="text-4xl sm:text-5xl font-bold mb-4">
-            Loved by <span className="gradient-text">top creators</span>
+          <h2 className="text-4xl sm:text-5xl font-bold font-display mb-4">
+            Loved by <span className="gradient-text">creators worldwide</span>
           </h2>
-          <p className="text-slate-400 max-w-xl mx-auto text-lg">
-            Join thousands of creators who save hours every week with AI Content Reparser.
-          </p>
         </motion.div>
 
-        {/* Cards */}
+        {/* Featured quote */}
         <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-100px" }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-6"
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7 }}
+          className="glass rounded-3xl p-8 md:p-12 mb-10 text-center relative overflow-hidden"
         >
-          {testimonials.map((t) => (
-            <motion.div key={t.name} variants={cardVariants}>
-              <Card hover className="h-full flex flex-col">
-                {/* Stars */}
-                <div className="flex gap-1 mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <svg key={i} className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                  ))}
-                </div>
+          <div className="absolute top-4 left-6 text-7xl gradient-text opacity-50 font-serif leading-none select-none">
+            "
+          </div>
+          <p className="text-xl md:text-2xl text-white/90 leading-relaxed max-w-3xl mx-auto font-medium mb-8 relative z-10">
+            {featured.quote}
+          </p>
+          <div className="flex items-center justify-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-600 to-cyan-500 flex items-center justify-center text-white font-bold text-sm">
+              AR
+            </div>
+            <div className="text-left">
+              <div className="text-white font-semibold text-sm">{featured.name}</div>
+              <div className="text-slate-400 text-xs">{featured.role}</div>
+            </div>
+          </div>
+        </motion.div>
 
-                <p className="text-slate-300 text-sm leading-relaxed mb-6 flex-1">
-                  &ldquo;{t.text}&rdquo;
-                </p>
-
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-10 h-10 rounded-full bg-gradient-to-br ${t.avatarColor} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}
-                  >
-                    {t.avatar}
-                  </div>
-                  <div>
-                    <p className="text-white font-semibold text-sm">{t.name}</p>
-                    <p className="text-slate-500 text-xs">{t.role}</p>
-                  </div>
+        {/* Testimonial cards grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {testimonials.map((t, i) => (
+            <motion.div
+              key={t.name}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: i * 0.1 }}
+              whileHover={{ y: -6, boxShadow: "0 0 30px rgba(124,58,237,0.2)" }}
+              className="glass-card p-6 flex flex-col gap-4 cursor-default"
+            >
+              {/* Stars */}
+              <div className="flex gap-0.5">
+                {Array.from({ length: 5 }).map((_, j) => (
+                  <svg key={j} className="w-4 h-4" viewBox="0 0 20 20" fill="url(#star-grad)">
+                    <defs>
+                      <linearGradient id="star-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stopColor="#7C3AED" />
+                        <stop offset="100%" stopColor="#06B6D4" />
+                      </linearGradient>
+                    </defs>
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                  </svg>
+                ))}
+              </div>
+              <p className="text-slate-300 text-sm leading-relaxed flex-1">"{t.text}"</p>
+              <div className="flex items-center gap-3 pt-2 border-t border-white/5">
+                <div
+                  className={`w-9 h-9 rounded-full bg-gradient-to-br ${t.color} flex items-center justify-center text-white font-bold text-xs shrink-0`}
+                >
+                  {t.initials}
                 </div>
-              </Card>
+                <div>
+                  <div className="text-white font-medium text-sm">{t.name}</div>
+                  <div className="text-slate-500 text-xs">{t.role}</div>
+                </div>
+              </div>
             </motion.div>
           ))}
-        </motion.div>
+        </div>
       </div>
     </section>
   );
