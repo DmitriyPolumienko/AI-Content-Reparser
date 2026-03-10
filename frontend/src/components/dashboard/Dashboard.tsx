@@ -12,6 +12,7 @@ import SkeletonLoader from "./SkeletonLoader";
 import LoadingProgress from "./LoadingProgress";
 import GradientOrbs from "@/components/effects/GradientOrbs";
 import ShimmerButton from "@/components/effects/ShimmerButton";
+import Navbar from "@/components/landing/Navbar";
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -113,7 +114,7 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <main className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 py-10">
+      <main className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 pb-10 pt-24">
         {/* Step indicators — gradient progress bar */}
         <div className="mb-10">
           {/* Progress bar */}
