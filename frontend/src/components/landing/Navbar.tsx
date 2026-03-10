@@ -6,17 +6,32 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import ShimmerButton from "@/components/effects/ShimmerButton";
 
-const navLinks = [
+const landingNavLinks = [
   { href: "#features", label: "Features" },
   { href: "#how-it-works", label: "How It Works" },
   { href: "#pricing", label: "Pricing" },
   { href: "#blog", label: "Blog" },
 ];
 
-export default function Navbar() {
+const dashboardNavLinks = [
+  { href: "/", label: "Home" },
+  { href: "/#pricing", label: "Pricing" },
+  { href: "/blog", label: "Blog" },
+];
+
+interface NavbarProps {
+  variant?: "landing" | "dashboard";
+  wordsRemaining?: number;
+  onStartOver?: () => void;
+}
+
+export default function Navbar({ variant = "landing", wordsRemaining, onStartOver }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const router = useRouter();
+
+  const isDashboard = variant === "dashboard";
+  const navLinks = isDashboard ? dashboardNavLinks : landingNavLinks;
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 20);
@@ -55,17 +70,36 @@ export default function Navbar() {
           ))}
         </ul>
 
-        {/* Desktop CTA */}
+        {/* Desktop right-side content */}
         <div className="hidden md:flex items-center gap-3">
-          <Link
-            href="/dashboard"
-            className="text-sm text-slate-400 hover:text-white transition-colors"
-          >
-            Sign In
-          </Link>
-          <ShimmerButton size="sm" onClick={() => router.push("/dashboard")}>
-            Get Started →
-          </ShimmerButton>
+          {isDashboard ? (
+            <>
+              <div className="px-3 py-1.5 glass rounded-full text-xs text-slate-400">
+                Words remaining:{" "}
+                <span className="text-emerald-400 font-semibold">
+                  {(wordsRemaining ?? 0).toLocaleString()}
+                </span>
+              </div>
+              <button
+                onClick={onStartOver}
+                className="text-xs text-slate-500 hover:text-emerald-400 transition-colors"
+              >
+                ↺ Start Over
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/dashboard"
+                className="text-sm text-slate-400 hover:text-white transition-colors"
+              >
+                Sign In
+              </Link>
+              <ShimmerButton size="sm" onClick={() => router.push("/dashboard")}>
+                Get Started →
+              </ShimmerButton>
+            </>
+          )}
         </div>
 
         {/* Mobile burger */}
@@ -110,13 +144,30 @@ export default function Navbar() {
                   {link.label}
                 </Link>
               ))}
-              <ShimmerButton
-                size="sm"
-                className="mt-2 w-full justify-center"
-                onClick={() => { setMenuOpen(false); router.push("/dashboard"); }}
-              >
-                Get Started →
-              </ShimmerButton>
+              {isDashboard ? (
+                <>
+                  <div className="px-3 py-1.5 glass rounded-full text-xs text-slate-400 text-center">
+                    Words remaining:{" "}
+                    <span className="text-emerald-400 font-semibold">
+                      {(wordsRemaining ?? 0).toLocaleString()}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => { setMenuOpen(false); onStartOver?.(); }}
+                    className="text-sm text-slate-500 hover:text-emerald-400 transition-colors py-2"
+                  >
+                    ↺ Start Over
+                  </button>
+                </>
+              ) : (
+                <ShimmerButton
+                  size="sm"
+                  className="mt-2 w-full justify-center"
+                  onClick={() => { setMenuOpen(false); router.push("/dashboard"); }}
+                >
+                  Get Started →
+                </ShimmerButton>
+              )}
             </div>
           </motion.div>
         )}

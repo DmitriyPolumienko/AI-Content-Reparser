@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Link from "next/link";
 import UrlInput from "./UrlInput";
 import SubtitleEditor from "./SubtitleEditor";
 import GenerationSettings from "./GenerationSettings";
@@ -11,6 +10,7 @@ import SkeletonLoader from "./SkeletonLoader";
 import LoadingProgress from "./LoadingProgress";
 import GradientOrbs from "@/components/effects/GradientOrbs";
 import ShimmerButton from "@/components/effects/ShimmerButton";
+import Navbar from "@/components/landing/Navbar";
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -86,33 +86,9 @@ export default function Dashboard() {
     <div className="min-h-screen bg-[#030014] relative overflow-hidden">
       <GradientOrbs />
 
-      {/* Navbar */}
-      <header className="relative z-10 border-b border-white/5 bg-black/30 backdrop-blur-xl sticky top-0">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 group">
-            <img src="/icon.svg" alt="V2Post Logo" width={28} height={28} className="rounded-lg shadow-glow" />
-            <span className="font-bold text-white text-sm font-display">
-              V2<span className="gradient-text">Post</span>
-            </span>
-          </Link>
-          <div className="flex items-center gap-3">
-            <div className="px-3 py-1.5 glass rounded-full text-xs text-slate-400">
-              Words remaining:{" "}
-              <span className="text-emerald-400 font-semibold">
-                {wordsRemaining.toLocaleString()}
-              </span>
-            </div>
-            <button
-              onClick={handleStartOver}
-              className="text-xs text-slate-500 hover:text-emerald-400 transition-colors"
-            >
-              ↺ Start Over
-            </button>
-          </div>
-        </div>
-      </header>
+      <Navbar variant="dashboard" wordsRemaining={wordsRemaining} onStartOver={handleStartOver} />
 
-      <main className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 py-10">
+      <main className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 pb-10 pt-24">
         {/* Step indicators — gradient progress bar */}
         <div className="mb-10">
           {/* Progress bar */}
