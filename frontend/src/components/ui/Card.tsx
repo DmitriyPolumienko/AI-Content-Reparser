@@ -1,13 +1,13 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { ReactNode } from "react";
+import { HTMLAttributes, ReactNode } from "react";
 
-interface CardProps {
+interface CardProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
   hover?: boolean;
   glow?: boolean;
   className?: string;
+  padding?: "none" | "sm" | "md" | "lg";
 }
 
 export default function Card({
@@ -15,16 +15,28 @@ export default function Card({
   hover = false,
   glow = false,
   className = "",
+  padding = "md",
+  ...props
 }: CardProps) {
+  const paddingClasses = {
+    none: "",
+    sm: "p-4",
+    md: "p-6",
+    lg: "p-8",
+  };
+
   return (
-    <motion.div
-      whileHover={hover ? { scale: 1.02, y: -4 } : undefined}
-      transition={{ type: "spring", stiffness: 300, damping: 20 }}
-      className={`glass-card p-6 ${
-        glow ? "hover:shadow-lg hover:shadow-blue-500/10 hover:border-blue-500/30" : ""
-      } transition-all duration-300 ${className}`}
+    <div
+      className={`
+        glass-card
+        ${paddingClasses[padding]}
+        ${hover ? "transition-all duration-300 hover:-translate-y-1 hover:border-white/20 cursor-pointer" : ""}
+        ${glow ? "hover:shadow-glow" : ""}
+        ${className}
+      `}
+      {...props}
     >
       {children}
-    </motion.div>
+    </div>
   );
 }
