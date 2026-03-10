@@ -52,6 +52,7 @@ API docs available at [http://localhost:8000/docs](http://localhost:8000/docs).
 | `OPENAI_API_KEY` | OpenAI API key (GPT-4.1) |
 | `OPENAI_MODEL` | OpenAI model name (default: `gpt-4.1`) |
 | `ALLOWED_ORIGINS` | Comma-separated list of allowed CORS origins |
+| `ALLOWED_ORIGINS_REGEX` | Regex pattern for dynamic CORS origins (default: `https://.*\.vercel\.app` to allow all Vercel preview URLs) |
 
 ### Frontend (`frontend/.env.local`)
 
@@ -91,6 +92,7 @@ API docs available at [http://localhost:8000/docs](http://localhost:8000/docs).
    - `OPENAI_API_KEY` = your OpenAI key
    - `OPENAI_MODEL` = `gpt-4.1`
    - `ALLOWED_ORIGINS` = your Vercel frontend URL (e.g., `https://ai-content-reparser.vercel.app`)
+   - `ALLOWED_ORIGINS_REGEX` = (optional) regex to allow Vercel preview URLs, defaults to `https://.*\.vercel\.app`
 7. Deploy
 
 ### Connecting Frontend ↔ Backend
