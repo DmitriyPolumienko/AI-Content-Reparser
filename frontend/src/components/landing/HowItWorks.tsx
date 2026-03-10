@@ -6,24 +6,35 @@ import { useRef } from "react";
 const steps = [
   {
     number: "01",
-    title: "Paste Your Video Link",
+    title: "Paste a YouTube URL",
     description:
-      "Drop a YouTube URL into our smart input. We support YouTube now, with Twitch, TikTok, and Kick coming soon.",
+      "Drop any YouTube video link into our smart input field. We support all public videos with auto-generated or manual captions.",
     icon: "🔗",
+    detail: "Supports youtube.com/watch?v=, youtu.be/, and YouTube Shorts",
   },
   {
     number: "02",
-    title: "Review & Edit Transcript",
+    title: "AI Extracts & Processes Subtitles",
     description:
-      "AI extracts the full transcript. Review, clean up, or add context before generation. Your control, our speed.",
-    icon: "✏️",
+      "Our AI instantly pulls the full video transcript, cleans up filler words, and structures the content. Review and edit before the next step.",
+    icon: "🤖",
+    detail: "Takes under 10 seconds for most videos",
   },
   {
     number: "03",
-    title: "Generate & Publish",
+    title: "Choose Format & Add Keywords",
     description:
-      "Choose format, add keywords, hit Generate. Get a polished, SEO-ready piece in seconds. Copy, export, done.",
+      "Select your output format: SEO Article, LinkedIn Post, or Twitter Thread. Optionally add target keywords for natural integration.",
+    icon: "⚙️",
+    detail: "SEO Article · LinkedIn Post · Twitter Thread",
+  },
+  {
+    number: "04",
+    title: "Get Publication-Ready Content",
+    description:
+      "Hit Generate and receive fully formatted, publish-ready content in seconds. Copy, export as markdown, or paste directly into your CMS.",
     icon: "🚀",
+    detail: "Under 30 seconds from URL to finished article",
   },
 ];
 
@@ -40,7 +51,7 @@ export default function HowItWorks() {
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: "radial-gradient(ellipse at 50% 0%, rgba(124,58,237,0.06) 0%, transparent 60%)",
+          background: "radial-gradient(ellipse at 50% 0%, rgba(16,185,129,0.06) 0%, transparent 60%)",
         }}
       />
 
@@ -53,76 +64,80 @@ export default function HowItWorks() {
           transition={{ duration: 0.6 }}
           className="text-center mb-20"
         >
-          <span className="inline-block px-4 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-400 text-sm font-medium mb-4">
+          <span className="inline-block px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-medium mb-4">
             How It Works
           </span>
           <h2 className="text-4xl sm:text-5xl font-bold font-display">
-            Three steps to <span className="gradient-text">ready content</span>
+            Four steps to <span className="gradient-text">ready content</span>
           </h2>
+          <p className="text-slate-400 max-w-xl mx-auto text-lg mt-4">
+            The process is dead simple. Paste a URL, let AI work, and publish.
+          </p>
         </motion.div>
 
-        {/* Steps */}
-        <div className="relative">
-          {/* Animated connecting line (desktop) */}
-          <div className="hidden md:block absolute top-12 left-[16.67%] right-[16.67%] h-px overflow-hidden">
-            <svg
-              className="w-full h-px"
-              viewBox="0 0 100 1"
-              preserveAspectRatio="none"
-            >
-              <line
-                x1="0" y1="0.5" x2="100" y2="0.5"
-                stroke="rgba(255,255,255,0.1)"
-                strokeWidth="1"
-                strokeDasharray="4 4"
-              />
-            </svg>
+        {/* Steps — vertical on mobile, 2-column zigzag on desktop */}
+        <div className="space-y-8 md:space-y-0 md:grid md:grid-cols-2 md:gap-8">
+          {steps.map((step, i) => (
             <motion.div
-              className="absolute top-0 left-0 h-full"
-              style={{
-                scaleX: lineProgress,
-                transformOrigin: "left center",
-                background: "linear-gradient(90deg, #7C3AED, #06B6D4, #10B981)",
-                height: "1px",
-              }}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-            {steps.map((step, i) => (
-              <motion.div
-                key={step.number}
-                initial={{ opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: i * 0.2 }}
-                className="flex flex-col items-center text-center"
-              >
-                {/* Number */}
-                <div className="relative mb-6">
-                  <span
-                    className="text-7xl md:text-8xl font-bold font-display"
-                    style={{
-                      background: "linear-gradient(135deg, #7C3AED, #06B6D4)",
-                      WebkitBackgroundClip: "text",
-                      WebkitTextFillColor: "transparent",
-                      backgroundClip: "text",
-                      opacity: 0.6,
-                    }}
-                  >
-                    {step.number}
-                  </span>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-14 h-14 rounded-2xl glass flex items-center justify-center text-2xl border border-white/10">
-                      {step.icon}
-                    </div>
-                  </div>
+              key={step.number}
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{ duration: 0.6, delay: i * 0.15 }}
+              className="glass-card p-6 md:p-8 flex gap-5 items-start group hover:border-emerald-500/20 transition-colors duration-300"
+            >
+              {/* Step number — large, clearly visible */}
+              <div className="shrink-0 text-center w-16">
+                <div
+                  className="text-5xl font-bold font-display leading-none"
+                  style={{
+                    background: "linear-gradient(135deg, #10B981, #059669)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    backgroundClip: "text",
+                    opacity: 0.7,
+                  }}
+                >
+                  {step.number}
                 </div>
-                <h3 className="text-xl font-bold text-white font-display mb-3">{step.title}</h3>
-                <p className="text-slate-400 text-sm leading-relaxed max-w-xs">{step.description}</p>
-              </motion.div>
-            ))}
-          </div>
+                <div className="mt-2 w-10 h-10 mx-auto rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-xl group-hover:scale-110 transition-transform duration-300">
+                  {step.icon}
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 min-w-0">
+                <h3 className="text-lg font-bold text-white font-display mb-2">{step.title}</h3>
+                <p className="text-slate-400 text-sm leading-relaxed mb-3">{step.description}</p>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  <span className="text-emerald-400 text-xs">{step.detail}</span>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Animated connecting line (desktop only, between columns) */}
+        <div className="hidden md:flex justify-center mt-10">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8, delay: 0.6 }}
+            className="text-center"
+          >
+            <a
+              href="/dashboard"
+              className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-semibold text-white transition-all duration-300 hover:scale-105"
+              style={{
+                background: "linear-gradient(135deg, #10B981, #059669)",
+                boxShadow: "0 0 30px rgba(16,185,129,0.3)",
+              }}
+            >
+              Start Your First Conversion →
+            </a>
+          </motion.div>
         </div>
       </div>
     </section>

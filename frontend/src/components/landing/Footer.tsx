@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 
-const footerLinks = {
-  Product: ["Features", "Pricing", "Dashboard", "API"],
-  Company: ["About", "Blog", "Careers", "Press"],
-  Legal: ["Privacy Policy", "Terms of Service", "Cookie Policy"],
-  Support: ["Documentation", "Contact", "Status"],
-};
+const footerLinks = [
+  { label: "Home", href: "/" },
+  { label: "How It Works", href: "#how-it-works" },
+  { label: "Pricing", href: "#pricing" },
+  { label: "Blog", href: "/blog" },
+  { label: "Login", href: "/login" },
+  { label: "Dashboard", href: "/dashboard" },
+];
 
 export default function Footer() {
   return (
@@ -16,17 +18,17 @@ export default function Footer() {
       <div
         className="absolute top-0 left-0 right-0 h-px"
         style={{
-          background: "linear-gradient(90deg, transparent, #7C3AED, #06B6D4, #10B981, transparent)",
+          background: "linear-gradient(90deg, transparent, #10B981, #059669, #047857, transparent)",
         }}
       />
 
       <div className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mb-12">
+          <div className="flex flex-col md:flex-row gap-10 mb-12">
             {/* Brand */}
-            <div className="col-span-2 md:col-span-1">
+            <div className="md:w-72 shrink-0">
               <Link href="/" className="flex items-center gap-2 mb-4 group">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-600 to-cyan-500 flex items-center justify-center text-white font-bold text-sm shadow-glow">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-600 to-emerald-400 flex items-center justify-center text-white font-bold text-sm shadow-glow">
                   AI
                 </div>
                 <span className="font-bold text-white text-sm font-display">
@@ -50,23 +52,21 @@ export default function Footer() {
             </div>
 
             {/* Links */}
-            {Object.entries(footerLinks).map(([category, links]) => (
-              <div key={category}>
-                <h4 className="text-white font-semibold text-sm mb-4 font-display">{category}</h4>
-                <ul className="space-y-2.5">
-                  {links.map((link) => (
-                    <li key={link}>
-                      <Link
-                        href="#"
-                        className="text-slate-500 hover:text-white text-sm transition-colors"
-                      >
-                        {link}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+            <div className="flex-1">
+              <h4 className="text-white font-semibold text-sm mb-4 font-display">Navigation</h4>
+              <ul className="grid grid-cols-2 sm:grid-cols-3 gap-x-8 gap-y-2.5">
+                {footerLinks.map((link) => (
+                  <li key={link.label}>
+                    <Link
+                      href={link.href}
+                      className="text-slate-500 hover:text-white text-sm transition-colors"
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
 
           {/* Bottom bar */}
