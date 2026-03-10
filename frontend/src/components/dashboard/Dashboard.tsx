@@ -7,16 +7,15 @@ import UrlInput from "./UrlInput";
 import SubtitleEditor from "./SubtitleEditor";
 import GenerationSettings from "./GenerationSettings";
 import ResultOutput from "./ResultOutput";
+import SkeletonLoader from "./SkeletonLoader";
+import GradientOrbs from "@/components/effects/GradientOrbs";
+import ShimmerButton from "@/components/effects/ShimmerButton";
 
 type Step = 1 | 2 | 3 | 4;
 
-interface DashboardState {
-  step: Step;
-  transcript: string;
-  wordCount: number;
-  generatedContent: string;
-  wordsUsed: number;
-  wordsRemaining: number;
+interface Settings {
+  contentType: string;
+  keywords: string[];
 }
 
 const STEPS = [
@@ -27,108 +26,142 @@ const STEPS = [
 ];
 
 const slideVariants = {
-  enter: { opacity: 0, x: 40 },
+  enter: { opacity: 0, x: 30 },
   center: { opacity: 1, x: 0 },
-  exit: { opacity: 0, x: -40 },
+  exit: { opacity: 0, x: -30 },
 };
 
 export default function Dashboard() {
-  const [state, setState] = useState<DashboardState>({
-    step: 1,
-    transcript: "",
-    wordCount: 0,
-    generatedContent: "",
-    wordsUsed: 0,
-    wordsRemaining: 0,
-  });
+  const [step, setStep] = useState<Step>(1);
+  const [url, setUrl] = useState("");
+  const [transcript, setTranscript] = useState("");
+  const [settings, setSettings] = useState<Settings>({ contentType: "seo_article", keywords: [] });
+  const [generatedContent, setGeneratedContent] = useState("");
+  const [wordsRemaining, setWordsRemaining] = useState(10000);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const setStep = (step: Step) => setState((s) => ({ ...s, step }));
-
-  const handleTranscriptReady = (transcript: string, wordCount: number) => {
-    setState((s) => ({ ...s, transcript, wordCount, step: 2 }));
+  const handleExtract = (extractedUrl: string, extractedTranscript: string) => {
+    setUrl(extractedUrl);
+    setTranscript(extractedTranscript);
+    setStep(2);
   };
 
-  const handleTranscriptEdited = (editedTranscript: string) => {
-    setState((s) => ({ ...s, transcript: editedTranscript, step: 3 }));
+  const handleGenerate = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          transcript,
+          content_type: settings.contentType,
+          keywords: settings.keywords,
+        }),
+      });
+      if (!res.ok) throw new Error("Generation failed");
+      const data = await res.json();
+      setGeneratedContent(data.content);
+      setWordsRemaining(data.words_remaining ?? wordsRemaining);
+      setStep(4);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleResult = (content: string, wordsUsed: number, wordsRemaining: number) => {
-    setState((s) => ({
-      ...s,
-      generatedContent: content,
-      wordsUsed,
-      wordsRemaining,
-      step: 4,
-    }));
+  const handleStartOver = () => {
+    setStep(1);
+    setUrl("");
+    setTranscript("");
+    setSettings({ contentType: "seo_article", keywords: [] });
+    setGeneratedContent("");
+    setError("");
   };
-
-  const handleRegenerate = () => setStep(3);
-  const handleStartOver = () =>
-    setState({
-      step: 1,
-      transcript: "",
-      wordCount: 0,
-      generatedContent: "",
-      wordsUsed: 0,
-      wordsRemaining: 0,
-    });
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-[#030014] relative overflow-hidden">
+      <GradientOrbs />
+
       {/* Navbar */}
-      <header className="border-b border-white/5 bg-slate-950/80 backdrop-blur-md sticky top-0 z-10">
+      <header className="relative z-10 border-b border-white/5 bg-black/30 backdrop-blur-xl sticky top-0">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 group">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center text-white font-bold text-xs">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-600 to-cyan-500 flex items-center justify-center text-white font-bold text-xs shadow-glow">
               AI
             </div>
-            <span className="font-bold text-white text-sm group-hover:text-blue-400 transition-colors">
-              Content Reparser
+            <span className="font-bold text-white text-sm font-display">
+              Content <span className="gradient-text">Reparser</span>
             </span>
           </Link>
-          <div className="text-xs text-slate-500">
-            Words remaining:{" "}
-            <span className="text-green-400 font-semibold">
-              {state.wordsRemaining > 0
-                ? state.wordsRemaining.toLocaleString()
-                : "10,000"}
-            </span>
+          <div className="flex items-center gap-3">
+            <div className="px-3 py-1.5 glass rounded-full text-xs text-slate-400">
+              Words remaining:{" "}
+              <span className="text-emerald-400 font-semibold">
+                {wordsRemaining.toLocaleString()}
+              </span>
+            </div>
+            <button
+              onClick={handleStartOver}
+              className="text-xs text-slate-500 hover:text-white transition-colors"
+            >
+              Start Over
+            </button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
+      <main className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 py-10">
         {/* Step indicators */}
         <div className="flex items-center gap-2 mb-10 overflow-x-auto pb-2">
           {STEPS.map((s, i) => (
             <div key={s.num} className="flex items-center gap-2 flex-shrink-0">
               <div
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                  state.step === s.num
-                    ? "bg-blue-500/20 border border-blue-500/40 text-blue-400"
-                    : state.step > s.num
-                    ? "bg-green-500/10 border border-green-500/20 text-green-400"
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 ${
+                  step === s.num
+                    ? "border text-violet-300"
+                    : step > s.num
+                    ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
                     : "bg-white/5 border border-white/10 text-slate-500"
                 }`}
+                style={
+                  step === s.num
+                    ? {
+                        background: "linear-gradient(135deg, rgba(124,58,237,0.2), rgba(6,182,212,0.1))",
+                        borderColor: "rgba(124,58,237,0.4)",
+                      }
+                    : {}
+                }
               >
                 <span
-                  className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${
-                    state.step > s.num
-                      ? "bg-green-500 text-white"
-                      : state.step === s.num
-                      ? "bg-blue-500 text-white"
-                      : "bg-slate-700 text-slate-400"
+                  className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
+                    step > s.num
+                      ? "bg-emerald-500 text-white"
+                      : step === s.num
+                      ? "text-white"
+                      : "bg-white/10 text-slate-500"
                   }`}
+                  style={
+                    step === s.num
+                      ? { background: "linear-gradient(135deg, #7C3AED, #06B6D4)" }
+                      : {}
+                  }
                 >
-                  {state.step > s.num ? "✓" : s.num}
+                  {step > s.num ? "✓" : s.num}
                 </span>
-                {s.label}
+                <span className="hidden sm:block">{s.label}</span>
               </div>
               {i < STEPS.length - 1 && (
                 <div
-                  className={`h-px w-6 ${
-                    state.step > s.num ? "bg-green-500/40" : "bg-white/10"
-                  }`}
+                  className="h-px w-6 transition-all duration-500"
+                  style={{
+                    background:
+                      step > s.num
+                        ? "linear-gradient(90deg, #10B981, #06B6D4)"
+                        : "rgba(255,255,255,0.08)",
+                  }}
                 />
               )}
             </div>
@@ -136,42 +169,105 @@ export default function Dashboard() {
         </div>
 
         {/* Step content */}
-        <div className="glass-card p-6 sm:p-8 min-h-[400px]">
+        <div className="glass-card p-6 sm:p-8 min-h-[400px] relative overflow-hidden">
           <AnimatePresence mode="wait">
             <motion.div
-              key={state.step}
+              key={step}
               variants={slideVariants}
               initial="enter"
               animate="center"
               exit="exit"
               transition={{ duration: 0.25, ease: "easeOut" }}
             >
-              {state.step === 1 && (
-                <UrlInput onTranscriptReady={handleTranscriptReady} />
+              {step === 1 && <UrlInput onExtract={handleExtract} />}
+
+              {step === 2 && (
+                <div className="space-y-5">
+                  <SubtitleEditor
+                    transcript={transcript}
+                    onChange={setTranscript}
+                  />
+                  <div className="flex justify-between pt-2">
+                    <button
+                      onClick={() => setStep(1)}
+                      className="text-sm text-slate-500 hover:text-white transition-colors"
+                    >
+                      ← Back
+                    </button>
+                    <ShimmerButton
+                      size="md"
+                      onClick={() => setStep(3)}
+                      disabled={!transcript.trim()}
+                    >
+                      Next: Configure →
+                    </ShimmerButton>
+                  </div>
+                </div>
               )}
-              {state.step === 2 && (
-                <SubtitleEditor
-                  transcript={state.transcript}
-                  wordCount={state.wordCount}
-                  onNext={handleTranscriptEdited}
-                  onBack={() => setStep(1)}
-                />
+
+              {step === 3 && (
+                <div className="space-y-6">
+                  <GenerationSettings onSettingsChange={setSettings} />
+
+                  {error && (
+                    <motion.p
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="text-red-400 text-sm"
+                    >
+                      {error}
+                    </motion.p>
+                  )}
+
+                  {loading && (
+                    <div className="mt-6">
+                      <p className="text-slate-400 text-sm mb-4 flex items-center gap-2">
+                        <svg className="w-4 h-4 animate-spin text-violet-400" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        Generating your content with GPT-4.1...
+                      </p>
+                      <SkeletonLoader />
+                    </div>
+                  )}
+
+                  <div className="flex justify-between pt-2">
+                    <button
+                      onClick={() => setStep(2)}
+                      className="text-sm text-slate-500 hover:text-white transition-colors"
+                    >
+                      ← Back
+                    </button>
+                    <ShimmerButton size="md" onClick={handleGenerate} disabled={loading}>
+                      {loading ? "Generating..." : "Generate Content →"}
+                    </ShimmerButton>
+                  </div>
+                </div>
               )}
-              {state.step === 3 && (
-                <GenerationSettings
-                  transcript={state.transcript}
-                  onResult={handleResult}
-                  onBack={() => setStep(2)}
-                />
-              )}
-              {state.step === 4 && (
-                <ResultOutput
-                  content={state.generatedContent}
-                  wordsUsed={state.wordsUsed}
-                  wordsRemaining={state.wordsRemaining}
-                  onRegenerate={handleRegenerate}
-                  onStartOver={handleStartOver}
-                />
+
+              {step === 4 && (
+                <div className="space-y-5">
+                  <ResultOutput
+                    content={generatedContent}
+                    onRegenerate={handleGenerate}
+                    isRegenerating={loading}
+                  />
+                  <div className="flex justify-between pt-2">
+                    <button
+                      onClick={() => setStep(3)}
+                      className="text-sm text-slate-500 hover:text-white transition-colors"
+                    >
+                      ← Back to Settings
+                    </button>
+                    <button
+                      onClick={handleStartOver}
+                      className="text-sm text-violet-400 hover:text-violet-300 transition-colors"
+                    >
+                      + New Content
+                    </button>
+                  </div>
+                </div>
               )}
             </motion.div>
           </AnimatePresence>

@@ -1,11 +1,11 @@
 "use client";
 
 import { motion } from "framer-motion";
-import Button from "@/components/ui/Button";
 
 const posts = [
   {
     tag: "SEO",
+    tagColor: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20",
     title: "How to Turn a 1-Hour Podcast into 10 Pieces of Content",
     excerpt:
       "Content repurposing is the fastest way to grow. Here's the exact workflow we use to extract maximum value from every recording.",
@@ -13,6 +13,7 @@ const posts = [
   },
   {
     tag: "AI",
+    tagColor: "text-violet-400 bg-violet-500/10 border-violet-500/20",
     title: "GPT-4 vs GPT-4.1 for Content Generation: What Changed?",
     excerpt:
       "We ran 500 content generation tests to compare models. The results surprised us — especially for SEO long-form content.",
@@ -20,6 +21,7 @@ const posts = [
   },
   {
     tag: "Growth",
+    tagColor: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
     title: "The Twitter Thread Formula That Gets 1,000+ Likes Every Time",
     excerpt:
       "After analyzing 200 viral threads, we distilled the exact structure. We've baked it into our AI prompts so you can replicate it instantly.",
@@ -29,7 +31,7 @@ const posts = [
 
 export default function Blog() {
   return (
-    <section id="blog" className="section-padding bg-slate-900/40">
+    <section id="blog" className="section-padding">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <motion.div
@@ -40,14 +42,19 @@ export default function Blog() {
           className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-12"
         >
           <div>
-            <span className="inline-block px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-sm font-medium mb-4">
+            <span className="inline-block px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm font-medium mb-4">
               Blog
             </span>
-            <h2 className="text-4xl sm:text-5xl font-bold">
-              Read Our <span className="gradient-text">Latest Insights</span>
+            <h2 className="text-4xl sm:text-5xl font-bold font-display">
+              Latest <span className="gradient-text">Insights</span>
             </h2>
           </div>
-          <Button variant="outline">View All Posts →</Button>
+          <a
+            href="#"
+            className="text-sm text-violet-400 hover:text-violet-300 transition-colors flex items-center gap-1 shrink-0"
+          >
+            View All Posts →
+          </a>
         </motion.div>
 
         {/* Post cards */}
@@ -59,21 +66,19 @@ export default function Blog() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: i * 0.1 }}
+              whileHover={{ scale: 1.02, y: -4 }}
+              className="glass-card p-6 h-full flex flex-col hover:border-white/20 cursor-pointer group hover:shadow-glow transition-all duration-300"
             >
-              <motion.div
-                whileHover={{ scale: 1.02, y: -4 }}
-                transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                className="glass-card p-6 h-full flex flex-col hover:border-white/20 cursor-pointer group"
+              <span
+                className={`inline-block px-3 py-1 text-xs font-semibold rounded-full border mb-4 w-fit ${post.tagColor}`}
               >
-                <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 mb-4 w-fit">
-                  {post.tag}
-                </span>
-                <h3 className="text-white font-bold text-lg mb-3 group-hover:text-blue-400 transition-colors leading-snug">
-                  {post.title}
-                </h3>
-                <p className="text-slate-400 text-sm leading-relaxed flex-1">{post.excerpt}</p>
-                <p className="text-slate-600 text-xs mt-4">{post.readTime}</p>
-              </motion.div>
+                {post.tag}
+              </span>
+              <h3 className="text-white font-bold text-lg mb-3 group-hover:gradient-text transition-colors leading-snug font-display">
+                {post.title}
+              </h3>
+              <p className="text-slate-400 text-sm leading-relaxed flex-1">{post.excerpt}</p>
+              <p className="text-slate-600 text-xs mt-4">{post.readTime}</p>
             </motion.div>
           ))}
         </div>

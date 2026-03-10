@@ -1,68 +1,60 @@
 "use client";
 
-import { useState } from "react";
-import Button from "@/components/ui/Button";
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 
 interface SubtitleEditorProps {
   transcript: string;
-  wordCount: number;
-  onNext: (editedTranscript: string) => void;
-  onBack: () => void;
+  onChange: (text: string) => void;
 }
 
-export default function SubtitleEditor({
-  transcript,
-  wordCount,
-  onNext,
-  onBack,
-}: SubtitleEditorProps) {
+export default function SubtitleEditor({ transcript, onChange }: SubtitleEditorProps) {
   const [text, setText] = useState(transcript);
 
-  const currentWordCount = text
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean).length;
+  useEffect(() => {
+    setText(transcript);
+  }, [transcript]);
+
+  const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
+  const charCount = text.length;
+
+  const handleChange = (val: string) => {
+    setText(val);
+    onChange(val);
+  };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-white mb-1">Step 2: Review & Edit Transcript</h2>
-        <p className="text-slate-400 text-sm">
-          The transcript has been extracted. You can edit it before generating content.
-        </p>
-      </div>
-
-      <div className="glass-card p-1">
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          rows={14}
-          className="w-full bg-transparent text-slate-200 text-sm leading-relaxed p-4 resize-none focus:outline-none placeholder-slate-600"
-          placeholder="Transcript will appear here…"
-        />
-      </div>
-
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="space-y-3"
+    >
       <div className="flex items-center justify-between">
-        <span className="text-xs text-slate-500">
-          {currentWordCount.toLocaleString()} words
-          {wordCount !== currentWordCount && (
-            <span className="ml-1 text-slate-600">(original: {wordCount.toLocaleString()})</span>
-          )}
-        </span>
-
-        <div className="flex gap-3">
-          <Button variant="ghost" size="sm" onClick={onBack}>
-            ← Back
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => onNext(text)}
-            disabled={!text.trim()}
-          >
-            Continue →
-          </Button>
+        <label className="text-sm font-medium text-slate-300">
+          Transcript
+        </label>
+        <div className="flex items-center gap-2">
+          <span className="px-3 py-1 glass rounded-full text-xs text-slate-400">
+            {wordCount.toLocaleString()} words
+          </span>
+          <span className="px-3 py-1 glass rounded-full text-xs text-slate-400">
+            {charCount.toLocaleString()} chars
+          </span>
         </div>
       </div>
-    </div>
+
+      <textarea
+        value={text}
+        onChange={(e) => handleChange(e.target.value)}
+        rows={10}
+        placeholder="Extracted transcript will appear here. You can edit it before generating content..."
+        className="w-full bg-white/5 border border-white/10 rounded-xl text-slate-200 placeholder-slate-600 focus:outline-none focus:border-violet-500/60 focus:ring-2 focus:ring-violet-500/20 transition-all duration-200 p-4 text-sm leading-relaxed resize-none"
+      />
+
+      <p className="text-slate-600 text-xs">
+        Edit the transcript to correct any errors or add context before generating.
+      </p>
+    </motion.div>
   );
 }
