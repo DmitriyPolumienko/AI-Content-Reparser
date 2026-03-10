@@ -45,11 +45,21 @@ API docs available at [http://localhost:8000/docs](http://localhost:8000/docs).
 
 ## Environment Variables
 
+### Backend (`backend/.env`)
+
 | Variable | Description |
 |---|---|
 | `OPENAI_API_KEY` | OpenAI API key (GPT-4.1) |
-| `SUPABASE_URL` | Supabase project URL |
-| `SUPABASE_KEY` | Supabase anon/service key |
+| `OPENAI_MODEL` | OpenAI model name (default: `gpt-4.1`) |
+| `ALLOWED_ORIGINS` | Comma-separated list of allowed CORS origins |
+
+### Frontend (`frontend/.env.local`)
+
+| Variable | Description |
+|---|---|
+| `NEXT_PUBLIC_API_URL` | Backend API URL |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key |
 
 ---
 
@@ -57,6 +67,7 @@ API docs available at [http://localhost:8000/docs](http://localhost:8000/docs).
 
 | Method | Path | Description |
 |---|---|---|
+| GET | `/health` | Health check (used by Render) |
 | POST | `/api/extract` | Extract transcript from YouTube URL |
 | POST | `/api/generate` | Generate content from transcript |
 
@@ -68,11 +79,20 @@ API docs available at [http://localhost:8000/docs](http://localhost:8000/docs).
 1. Import repo on [vercel.com/new](https://vercel.com/new)
 2. Set **Root Directory** to `frontend`
 3. Add env var: `NEXT_PUBLIC_API_URL` = your Render backend URL
+4. Deploy
 
 ### Backend (Render)
 1. Create new Web Service on [render.com](https://render.com)
-2. Connect this repo
+2. Connect GitHub repo
 3. Set **Root Directory** to `backend`
 4. **Build Command**: `pip install -r requirements.txt`
 5. **Start Command**: `uvicorn main:app --host 0.0.0.0 --port $PORT`
-6. Add env vars: `OPENAI_API_KEY`, `ALLOWED_ORIGINS` = your Vercel frontend URL
+6. Add env vars:
+   - `OPENAI_API_KEY` = your OpenAI key
+   - `OPENAI_MODEL` = `gpt-4.1`
+   - `ALLOWED_ORIGINS` = your Vercel frontend URL (e.g., `https://ai-content-reparser.vercel.app`)
+7. Deploy
+
+### Connecting Frontend ↔ Backend
+- In Vercel: set `NEXT_PUBLIC_API_URL` to your Render service URL (e.g., `https://ai-content-reparser-api.onrender.com`)
+- In Render: set `ALLOWED_ORIGINS` to your Vercel URL (e.g., `https://ai-content-reparser.vercel.app`)
