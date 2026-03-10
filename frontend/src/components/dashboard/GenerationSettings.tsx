@@ -20,7 +20,7 @@ export default function GenerationSettings({ onSettingsChange }: GenerationSetti
   const [keywords, setKeywords] = useState<string[]>([]);
 
   const addKeyword = (value: string) => {
-    const trimmed = value.trim().replace(/,$/, "");
+    const trimmed = value.trim().replace(/,+\s*$/, "");
     if (trimmed && !keywords.includes(trimmed)) {
       const next = [...keywords, trimmed];
       setKeywords(next);
