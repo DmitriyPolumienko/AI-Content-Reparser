@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import ShimmerButton from "@/components/effects/ShimmerButton";
@@ -50,7 +51,7 @@ export default function Navbar({ variant = "landing", wordsRemaining, onStartOve
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 group">
-          <img src="/icon.svg" alt="V2Post Logo" width={32} height={32} className="rounded-lg shadow-glow" />
+          <Image src="/logo-icon.png" alt="V2Post" width={36} height={36} />
           <span className="font-bold text-white font-display hidden sm:block">
             V2<span className="gradient-text">Post</span>
           </span>

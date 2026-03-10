@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
+import Image from "next/image";
 import UrlInput from "./UrlInput";
 import SubtitleEditor from "./SubtitleEditor";
 import GenerationSettings from "./GenerationSettings";
@@ -86,7 +88,31 @@ export default function Dashboard() {
     <div className="min-h-screen bg-[#030014] relative overflow-hidden">
       <GradientOrbs />
 
-      <Navbar variant="dashboard" wordsRemaining={wordsRemaining} onStartOver={handleStartOver} />
+      {/* Navbar */}
+      <header className="relative z-10 border-b border-white/5 bg-black/30 backdrop-blur-xl sticky top-0">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2 group">
+            <Image src="/logo-icon.png" alt="V2Post" width={28} height={28} />
+            <span className="font-bold text-white text-sm font-display">
+              V2<span className="gradient-text">Post</span>
+            </span>
+          </Link>
+          <div className="flex items-center gap-3">
+            <div className="px-3 py-1.5 glass rounded-full text-xs text-slate-400">
+              Words remaining:{" "}
+              <span className="text-emerald-400 font-semibold">
+                {wordsRemaining.toLocaleString()}
+              </span>
+            </div>
+            <button
+              onClick={handleStartOver}
+              className="text-xs text-slate-500 hover:text-emerald-400 transition-colors"
+            >
+              ↺ Start Over
+            </button>
+          </div>
+        </div>
+      </header>
 
       <main className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 pb-10 pt-24">
         {/* Step indicators — gradient progress bar */}
