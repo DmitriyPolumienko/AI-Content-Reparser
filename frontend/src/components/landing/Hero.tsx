@@ -135,7 +135,7 @@ function HowItWorksGuide() {
         <div className="w-2.5 h-2.5 rounded-full bg-red-500/60" />
         <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/60" />
         <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/60" />
-        <span className="ml-2 text-xs text-slate-500">AI Content Reparser</span>
+        <span className="ml-2 text-xs text-slate-500">V2Post</span>
       </div>
 
       {/* Steps */}

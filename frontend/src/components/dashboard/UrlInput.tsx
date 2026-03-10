@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ShimmerButton from "@/components/effects/ShimmerButton";
+import LoadingProgress from "./LoadingProgress";
 
 interface UrlInputProps {
   onExtract: (url: string, transcript: string) => void;
@@ -161,18 +162,31 @@ export default function UrlInput({ onExtract }: UrlInputProps) {
         </AnimatePresence>
       </div>
 
-      {/* Helper text */}
-      <div className="bg-emerald-500/5 border border-emerald-500/15 rounded-xl p-4">
-        <p className="text-xs text-slate-400 leading-relaxed">
-          <span className="text-emerald-400 font-medium">How it works:</span> Paste a YouTube URL above and we&apos;ll
-          extract the video transcript automatically. Supports videos with auto-generated or manually
-          added captions. After extraction, you can edit the transcript before generating content.
-        </p>
-      </div>
+      {/* Loading progress with fun facts */}
+      {loading && (
+        <LoadingProgress
+          message="Extracting transcript from YouTube..."
+          warningMessage="⚠️ Don't close this tab! Your progress won't be saved and tokens may be lost."
+        />
+      )}
 
-      <p className="text-slate-600 text-xs">
-        Supports YouTube videos with auto-generated or manually added captions.
-      </p>
+      {/* Helper text */}
+      {!loading && (
+        <div className="bg-emerald-500/5 border border-emerald-500/15 rounded-xl p-4">
+          <p className="text-xs text-slate-400 leading-relaxed">
+            <span className="text-emerald-400 font-medium">How it works:</span> Paste a YouTube URL above and we&apos;ll
+            extract the video transcript automatically. Supports videos with auto-generated or manually
+            added captions. After extraction, you can edit the transcript before generating content.
+          </p>
+        </div>
+      )}
+
+      {!loading && (
+        <p className="text-slate-600 text-xs">
+          Supports YouTube videos with auto-generated or manually added captions.
+        </p>
+      )}
     </motion.div>
   );
 }
+

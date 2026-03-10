@@ -3,27 +3,55 @@ import "@/styles/globals.css";
 import { ToastProvider } from "@/components/effects/Toast";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://v2post.io"),
   title: {
-    default: "AI Content Reparser — Turn Videos Into SEO Content",
-    template: "%s | AI Content Reparser",
+    default: "V2Post — Turn YouTube Videos into SEO Articles, LinkedIn Posts & Twitter Threads",
+    template: "%s | V2Post",
   },
   description:
-    "Transform YouTube videos into SEO-optimized articles, LinkedIn posts, and Twitter threads in seconds using AI. 10x faster content creation powered by GPT-4.1.",
-  keywords: ["AI content", "YouTube to article", "SEO content generator", "video repurposing", "GPT-4"],
+    "V2Post uses AI to convert YouTube videos into publication-ready content. Generate SEO articles, LinkedIn posts, and Twitter threads in seconds. Try free today.",
+  keywords: [
+    "V2Post",
+    "YouTube to article",
+    "video to blog post",
+    "AI content generator",
+    "SEO content creator",
+    "video repurposing tool",
+    "YouTube transcript to article",
+    "LinkedIn post generator",
+    "Twitter thread generator",
+    "GPT-4 content creation",
+  ],
+  alternates: {
+    canonical: "https://v2post.io",
+  },
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+    ],
+  },
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://ai-content-reparser.com",
-    siteName: "AI Content Reparser",
-    title: "AI Content Reparser — Turn Videos Into SEO Content",
+    url: "https://v2post.io",
+    siteName: "V2Post",
+    title: "V2Post — Turn YouTube Videos into SEO Articles, LinkedIn Posts & Twitter Threads",
     description:
-      "Transform YouTube videos into SEO-optimized articles, LinkedIn posts, and Twitter threads in seconds using AI.",
+      "V2Post uses AI to convert YouTube videos into publication-ready content. Generate SEO articles, LinkedIn posts, and Twitter threads in seconds. Try free today.",
+    images: [
+      {
+        url: "/icon.svg",
+        width: 48,
+        height: 48,
+        alt: "V2Post Logo",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "AI Content Reparser — Turn Videos Into SEO Content",
+    title: "V2Post — Turn YouTube Videos into SEO Articles, LinkedIn Posts & Twitter Threads",
     description:
-      "Transform YouTube videos into SEO-optimized articles, LinkedIn posts, and Twitter threads in seconds using AI.",
+      "V2Post uses AI to convert YouTube videos into publication-ready content. Generate SEO articles, LinkedIn posts, and Twitter threads in seconds. Try free today.",
   },
 };
 
