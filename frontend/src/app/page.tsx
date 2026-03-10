@@ -7,6 +7,7 @@ import Testimonials from "@/components/landing/Testimonials";
 import Pricing from "@/components/landing/Pricing";
 import Blog from "@/components/landing/Blog";
 import CTASection from "@/components/landing/CTASection";
+import FAQ from "@/components/landing/FAQ";
 import Footer from "@/components/landing/Footer";
 
 export default function LandingPage() {
@@ -21,6 +22,7 @@ export default function LandingPage() {
       <Pricing />
       <Blog />
       <CTASection />
+      <FAQ />
       <Footer />
     </main>
   );

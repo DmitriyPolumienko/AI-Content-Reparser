@@ -1,4 +1,4 @@
-# AI Content Reparser
+# V2Post
 
 A SaaS application that converts YouTube videos into SEO-optimized content (articles, posts) using AI.
 

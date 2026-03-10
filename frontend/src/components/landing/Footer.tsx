@@ -28,11 +28,9 @@ export default function Footer() {
             {/* Brand */}
             <div className="md:w-72 shrink-0">
               <Link href="/" className="flex items-center gap-2 mb-4 group">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-600 to-emerald-400 flex items-center justify-center text-white font-bold text-sm shadow-glow">
-                  AI
-                </div>
+                <img src="/icon.svg" alt="V2Post Logo" width={32} height={32} className="rounded-lg shadow-glow" />
                 <span className="font-bold text-white text-sm font-display">
-                  Content <span className="gradient-text">Reparser</span>
+                  V2<span className="gradient-text">Post</span>
                 </span>
               </Link>
               <p className="text-slate-500 text-xs leading-relaxed mb-4">
@@ -72,7 +70,7 @@ export default function Footer() {
           {/* Bottom bar */}
           <div className="pt-8 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-slate-600 text-xs">
-              © {new Date().getFullYear()} AI Content Reparser. All rights reserved.
+              © {new Date().getFullYear()} V2Post. All rights reserved.
             </p>
             <p className="text-slate-600 text-xs">
               Built with{" "}

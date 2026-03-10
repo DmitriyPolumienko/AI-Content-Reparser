@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.routers import extract, generate
 
 app = FastAPI(
-    title="AI Content Reparser API",
+    title="V2Post API",
     description="Convert YouTube videos into SEO-optimized content using AI.",
     version="1.0.0",
 )
@@ -29,7 +29,7 @@ app.include_router(generate.router, prefix="/api")
 
 @app.get("/")
 def root():
-    return {"status": "ok", "message": "AI Content Reparser API is running"}
+    return {"status": "ok", "message": "V2Post API is running"}
 
 
 @app.get("/health")
