@@ -165,7 +165,7 @@ export default function Pricing() {
                   </motion.div>
                 </AnimatePresence>
                 {annual && plan.monthlyPrice > 0 && (
-                  <p className="text-xs text-emerald-400 mt-1">Billed annually (${(annual ? plan.annualPrice : plan.monthlyPrice) * 12}/yr)</p>
+                  <p className="text-xs text-emerald-400 mt-1">Billed annually (${plan.annualPrice * 12}/yr)</p>
                 )}
               </div>
 
