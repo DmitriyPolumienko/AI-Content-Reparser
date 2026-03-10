@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 
 const footerLinks = [
   { label: "Home", href: "/" },
@@ -28,7 +29,7 @@ export default function Footer() {
             {/* Brand */}
             <div className="md:w-72 shrink-0">
               <Link href="/" className="flex items-center gap-2 mb-4 group">
-                <img src="/icon.svg" alt="V2Post Logo" width={32} height={32} className="rounded-lg shadow-glow" />
+                <Image src="/logo-icon.png" alt="V2Post" width={32} height={32} />
                 <span className="font-bold text-white text-sm font-display">
                   V2<span className="gradient-text">Post</span>
                 </span>
