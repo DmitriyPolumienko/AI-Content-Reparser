@@ -46,7 +46,7 @@ export default function Select({
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="w-full flex items-center justify-between px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white hover:border-white/20 focus:outline-none focus:border-violet-500/60 focus:ring-2 focus:ring-violet-500/20 transition-all duration-200"
+          className="w-full flex items-center justify-between px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white hover:border-white/20 focus:outline-none focus:border-emerald-500/60 focus:ring-2 focus:ring-emerald-500/20 transition-all duration-200"
           aria-haspopup="listbox"
           aria-expanded={open}
         >
@@ -76,7 +76,7 @@ export default function Select({
                 aria-selected={option.value === value}
                 className={`w-full flex items-center px-4 py-2.5 text-sm text-left transition-colors duration-150 ${
                   option.value === value
-                    ? "text-violet-400 bg-violet-500/10"
+                    ? "text-emerald-400 bg-emerald-500/10"
                     : "text-slate-300 hover:text-white hover:bg-white/5"
                 }`}
                 onClick={() => {
@@ -85,7 +85,7 @@ export default function Select({
                 }}
               >
                 {option.value === value && (
-                  <span className="mr-2 text-violet-400">✓</span>
+                  <span className="mr-2 text-emerald-400">✓</span>
                 )}
                 {option.label}
               </button>
