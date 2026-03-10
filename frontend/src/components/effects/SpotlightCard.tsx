@@ -42,7 +42,7 @@ export default function SpotlightCard({ children, className = "" }: SpotlightCar
         className="pointer-events-none absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-300"
         style={{
           background:
-            "radial-gradient(300px circle at var(--x) var(--y), rgba(124,58,237,0.15), transparent 70%)",
+            "radial-gradient(300px circle at var(--x) var(--y), rgba(16,185,129,0.12), transparent 70%)",
         }}
       />
       <div className="relative z-10">{children}</div>

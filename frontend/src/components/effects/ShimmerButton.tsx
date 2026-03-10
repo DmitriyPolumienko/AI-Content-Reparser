@@ -24,9 +24,9 @@ export default function ShimmerButton({
     <button
       className={`relative inline-flex items-center justify-center gap-2 font-semibold rounded-xl overflow-hidden text-white transition-all duration-300 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 ${sizeClasses[size]} ${className}`}
       style={{
-        background: "linear-gradient(135deg, #7C3AED, #06B6D4, #10B981)",
+        background: "linear-gradient(135deg, #10B981, #059669, #047857)",
         backgroundSize: "200% 200%",
-        boxShadow: "0 0 20px rgba(124,58,237,0.4), 0 0 60px rgba(6,182,212,0.15)",
+        boxShadow: "0 0 20px rgba(16,185,129,0.4), 0 0 60px rgba(5,150,105,0.15)",
       }}
       {...props}
     >

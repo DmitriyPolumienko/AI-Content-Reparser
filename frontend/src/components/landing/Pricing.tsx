@@ -92,7 +92,7 @@ export default function Pricing() {
             <button
               onClick={() => setAnnual((v) => !v)}
               className="relative w-12 h-6 rounded-full transition-colors duration-300"
-              style={{ background: annual ? "linear-gradient(135deg,#7C3AED,#06B6D4)" : "rgba(255,255,255,0.1)" }}
+              style={{ background: annual ? "linear-gradient(135deg,#10B981,#059669)" : "rgba(255,255,255,0.1)" }}
               aria-label="Toggle annual billing"
             >
               <motion.div
@@ -121,12 +121,12 @@ export default function Pricing() {
               transition={{ duration: 0.5, delay: i * 0.1 }}
               className={`relative rounded-2xl p-6 flex flex-col gap-5 transition-transform duration-300 hover:-translate-y-1 ${
                 plan.highlight
-                  ? "border border-violet-500/50 shadow-glow"
+                  ? "border border-emerald-500/50 shadow-glow"
                   : "glass-card"
               }`}
               style={
                 plan.highlight
-                  ? { background: "linear-gradient(135deg, rgba(124,58,237,0.15), rgba(6,182,212,0.1))", backdropFilter: "blur(20px)" }
+                  ? { background: "linear-gradient(135deg, rgba(16,185,129,0.15), rgba(5,150,105,0.1))", backdropFilter: "blur(20px)" }
                   : {}
               }
             >
@@ -136,7 +136,7 @@ export default function Pricing() {
                   <span
                     className="px-4 py-1 text-xs font-bold text-white rounded-full"
                     style={{
-                      background: "linear-gradient(135deg, #7C3AED, #06B6D4)",
+                      background: "linear-gradient(135deg, #10B981, #059669)",
                       animation: "glow-pulse 2s ease-in-out infinite",
                     }}
                   >
@@ -200,7 +200,7 @@ export default function Pricing() {
           className="text-center text-slate-500 text-sm mt-8"
         >
           Need more words?{" "}
-          <a href="#" className="text-violet-400 hover:text-violet-300 underline transition-colors">
+          <a href="#" className="text-emerald-400 hover:text-emerald-300 underline transition-colors">
             Buy additional word-packs
           </a>{" "}
           starting from $5 for 25,000 words.

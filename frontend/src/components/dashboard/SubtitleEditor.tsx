@@ -49,7 +49,7 @@ export default function SubtitleEditor({ transcript, onChange }: SubtitleEditorP
         onChange={(e) => handleChange(e.target.value)}
         rows={10}
         placeholder="Extracted transcript will appear here. You can edit it before generating content..."
-        className="w-full bg-white/5 border border-white/10 rounded-xl text-slate-200 placeholder-slate-600 focus:outline-none focus:border-violet-500/60 focus:ring-2 focus:ring-violet-500/20 transition-all duration-200 p-4 text-sm leading-relaxed resize-none"
+        className="w-full bg-white/5 border border-white/10 rounded-xl text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500/60 focus:ring-2 focus:ring-emerald-500/20 transition-all duration-200 p-4 text-sm leading-relaxed resize-none"
       />
 
       <p className="text-slate-600 text-xs">

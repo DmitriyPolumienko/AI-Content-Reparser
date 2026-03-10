@@ -3,7 +3,6 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import ShimmerButton from "@/components/effects/ShimmerButton";
-import GridPattern from "@/components/effects/GridPattern";
 import GradientOrbs from "@/components/effects/GradientOrbs";
 
 export default function CTASection() {
@@ -14,11 +13,10 @@ export default function CTASection() {
         className="absolute inset-0"
         style={{
           background:
-            "linear-gradient(135deg, rgba(124,58,237,0.15) 0%, rgba(6,182,212,0.1) 50%, rgba(16,185,129,0.08) 100%)",
+            "linear-gradient(135deg, rgba(16,185,129,0.12) 0%, rgba(5,150,105,0.08) 50%, rgba(4,120,87,0.06) 100%)",
         }}
       />
       <GradientOrbs />
-      <GridPattern />
 
       <div className="relative z-10 max-w-4xl mx-auto text-center">
         <motion.div
@@ -27,7 +25,7 @@ export default function CTASection() {
           viewport={{ once: true }}
           transition={{ duration: 0.7 }}
         >
-          <span className="inline-block px-4 py-1.5 rounded-full bg-white/10 border border-white/10 text-white/70 text-sm font-medium mb-6">
+          <span className="inline-block px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-medium mb-6">
             🚀 Start Today
           </span>
           <h2 className="text-4xl md:text-6xl font-bold font-display mb-6 leading-tight">
@@ -44,7 +42,7 @@ export default function CTASection() {
                 Start Creating for Free →
               </ShimmerButton>
             </Link>
-            <button className="px-8 py-4 text-slate-400 hover:text-white border border-white/10 rounded-xl transition-all hover:border-white/20 hover:bg-white/5">
+            <button className="px-8 py-4 text-slate-400 hover:text-white border border-white/10 rounded-xl transition-all hover:border-emerald-500/30 hover:bg-emerald-500/5">
               View Live Demo
             </button>
           </div>

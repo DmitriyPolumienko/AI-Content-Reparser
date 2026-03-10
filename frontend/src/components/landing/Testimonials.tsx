@@ -15,21 +15,21 @@ const testimonials = [
     name: "Sarah Chen",
     role: "Content Strategist at TechFlow",
     initials: "SC",
-    color: "from-violet-600 to-blue-500",
+    color: "from-emerald-600 to-teal-500",
   },
   {
     text: "Finally a tool that understands my niche. The keyword insertion is natural, not forced. My LinkedIn posts now consistently hit 1000+ engagements.",
     name: "Marcus Williams",
     role: "B2B Marketing Director",
     initials: "MW",
-    color: "from-cyan-500 to-teal-400",
+    color: "from-emerald-500 to-green-400",
   },
   {
     text: "The speed is insane. Drop a link, pick a format, get content. I've repurposed my entire 200-video archive into blog posts in two weekends.",
     name: "Priya Patel",
     role: "Podcast Host & Writer",
     initials: "PP",
-    color: "from-emerald-500 to-cyan-500",
+    color: "from-teal-500 to-emerald-400",
   },
 ];
 
@@ -40,7 +40,7 @@ export default function Testimonials() {
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: "radial-gradient(ellipse at 50% 50%, rgba(124,58,237,0.06) 0%, transparent 70%)",
+          background: "radial-gradient(ellipse at 50% 50%, rgba(16,185,129,0.05) 0%, transparent 70%)",
         }}
       />
 
@@ -53,7 +53,7 @@ export default function Testimonials() {
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
-          <span className="inline-block px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-sm font-medium mb-4">
+          <span className="inline-block px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-medium mb-4">
             Testimonials
           </span>
           <h2 className="text-4xl sm:text-5xl font-bold font-display mb-4">
@@ -76,7 +76,7 @@ export default function Testimonials() {
             {featured.quote}
           </p>
           <div className="flex items-center justify-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-600 to-cyan-500 flex items-center justify-center text-white font-bold text-sm">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-600 to-emerald-400 flex items-center justify-center text-white font-bold text-sm">
               AR
             </div>
             <div className="text-left">
@@ -95,21 +95,13 @@ export default function Testimonials() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: i * 0.1 }}
-              whileHover={{ y: -6, boxShadow: "0 0 30px rgba(124,58,237,0.2)" }}
+              whileHover={{ y: -6, boxShadow: "0 0 30px rgba(16,185,129,0.2)" }}
               className="glass-card p-6 flex flex-col gap-4 cursor-default"
             >
-              {/* Stars */}
-              <svg width="0" height="0" className="absolute">
-                <defs>
-                  <linearGradient id={`star-grad-${t.name}`} x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#7C3AED" />
-                    <stop offset="100%" stopColor="#06B6D4" />
-                  </linearGradient>
-                </defs>
-              </svg>
+              {/* Stars — gold colored */}
               <div className="flex gap-0.5">
                 {Array.from({ length: 5 }).map((_, j) => (
-                  <svg key={j} className="w-4 h-4" viewBox="0 0 20 20" fill={`url(#star-grad-${t.name})`}>
+                  <svg key={j} className="w-4 h-4 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                   </svg>
                 ))}

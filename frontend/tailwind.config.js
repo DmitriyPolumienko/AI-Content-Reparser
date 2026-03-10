@@ -8,9 +8,9 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: '#7C3AED',
-        accent: '#06B6D4',
-        success: '#10B981',
+        primary: '#10B981',
+        accent: '#059669',
+        success: '#047857',
         surface: 'rgba(255,255,255,0.05)',
       },
       fontFamily: {
@@ -26,9 +26,9 @@ module.exports = {
         'gradient-shift': 'gradient-shift 5s ease infinite',
       },
       boxShadow: {
-        glow: '0 0 20px rgba(124,58,237,0.3), 0 0 60px rgba(6,182,212,0.1)',
-        'glow-lg': '0 0 40px rgba(124,58,237,0.5), 0 0 80px rgba(6,182,212,0.2)',
-        'glow-cyan': '0 0 20px rgba(6,182,212,0.3), 0 0 60px rgba(16,185,129,0.1)',
+        glow: '0 0 20px rgba(16,185,129,0.3), 0 0 60px rgba(5,150,105,0.1)',
+        'glow-lg': '0 0 40px rgba(16,185,129,0.5), 0 0 80px rgba(5,150,105,0.2)',
+        'glow-emerald': '0 0 20px rgba(16,185,129,0.4), 0 0 60px rgba(4,120,87,0.2)',
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',

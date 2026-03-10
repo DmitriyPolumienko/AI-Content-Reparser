@@ -70,7 +70,7 @@ export default function GenerationSettings({ onSettingsChange }: GenerationSetti
           }}
           onBlur={() => keywordInput.trim() && addKeyword(keywordInput)}
           placeholder="Type keyword and press Enter..."
-          className="w-full bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-violet-500/60 focus:ring-2 focus:ring-violet-500/20 transition-all duration-200 py-2.5 px-4 text-sm"
+          className="w-full bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/60 focus:ring-2 focus:ring-emerald-500/20 transition-all duration-200 py-2.5 px-4 text-sm"
         />
 
         <AnimatePresence>
@@ -87,12 +87,12 @@ export default function GenerationSettings({ onSettingsChange }: GenerationSetti
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 bg-violet-500/15 border border-violet-500/30 text-violet-300 rounded-full text-xs font-medium"
+                  className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 rounded-full text-xs font-medium"
                 >
                   {kw}
                   <button
                     onClick={() => removeKeyword(kw)}
-                    className="text-violet-400 hover:text-white transition-colors leading-none"
+                    className="text-emerald-400 hover:text-white transition-colors leading-none"
                     aria-label={`Remove ${kw}`}
                   >
                     ✕

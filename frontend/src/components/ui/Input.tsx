@@ -30,7 +30,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           ref={ref}
           className={`
             w-full bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500
-            focus:outline-none focus:border-violet-500/60 focus:ring-2 focus:ring-violet-500/20
+            focus:outline-none focus:border-emerald-500/60 focus:ring-2 focus:ring-emerald-500/20
             transition-all duration-200 py-2.5 text-sm
             ${icon ? "pl-10" : "pl-4"}
             ${rightElement ? "pr-12" : "pr-4"}

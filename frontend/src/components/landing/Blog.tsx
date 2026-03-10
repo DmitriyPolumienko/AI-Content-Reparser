@@ -1,31 +1,35 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Link from "next/link";
 
 const posts = [
   {
     tag: "SEO",
-    tagColor: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20",
-    title: "How to Turn a 1-Hour Podcast into 10 Pieces of Content",
+    tagColor: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+    title: "How AI Transforms Video Content into SEO Gold",
     excerpt:
       "Content repurposing is the fastest way to grow. Here's the exact workflow we use to extract maximum value from every recording.",
     readTime: "5 min read",
+    slug: "how-ai-transforms-video-content",
   },
   {
-    tag: "AI",
-    tagColor: "text-violet-400 bg-violet-500/10 border-violet-500/20",
-    title: "GPT-4 vs GPT-4.1 for Content Generation: What Changed?",
+    tag: "Strategy",
+    tagColor: "text-teal-400 bg-teal-500/10 border-teal-500/20",
+    title: "SEO Strategies Every Video Creator Needs in 2025",
     excerpt:
-      "We ran 500 content generation tests to compare models. The results surprised us — especially for SEO long-form content.",
+      "Video SEO is evolving fast. Discover the strategies top creators use to rank their content across multiple platforms simultaneously.",
     readTime: "8 min read",
+    slug: "seo-strategies-for-video-creators",
   },
   {
     tag: "Growth",
-    tagColor: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
-    title: "The Twitter Thread Formula That Gets 1,000+ Likes Every Time",
+    tagColor: "text-green-400 bg-green-500/10 border-green-500/20",
+    title: "Maximizing Content ROI Through Smart Repurposing",
     excerpt:
-      "After analyzing 200 viral threads, we distilled the exact structure. We've baked it into our AI prompts so you can replicate it instantly.",
+      "After analyzing 200 viral content campaigns, we distilled the exact repurposing formula. We've baked it into our AI prompts so you can replicate it instantly.",
     readTime: "4 min read",
+    slug: "maximizing-content-roi-with-repurposing",
   },
 ];
 
@@ -42,19 +46,19 @@ export default function Blog() {
           className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-12"
         >
           <div>
-            <span className="inline-block px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm font-medium mb-4">
+            <span className="inline-block px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-medium mb-4">
               Blog
             </span>
             <h2 className="text-4xl sm:text-5xl font-bold font-display">
               Latest <span className="gradient-text">Insights</span>
             </h2>
           </div>
-          <a
-            href="#"
-            className="text-sm text-violet-400 hover:text-violet-300 transition-colors flex items-center gap-1 shrink-0"
+          <Link
+            href="/blog"
+            className="text-sm text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1 shrink-0"
           >
             View All Posts →
-          </a>
+          </Link>
         </motion.div>
 
         {/* Post cards */}
@@ -67,18 +71,22 @@ export default function Blog() {
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: i * 0.1 }}
               whileHover={{ scale: 1.02, y: -4 }}
-              className="glass-card p-6 h-full flex flex-col hover:border-white/20 cursor-pointer group hover:shadow-glow transition-all duration-300"
             >
-              <span
-                className={`inline-block px-3 py-1 text-xs font-semibold rounded-full border mb-4 w-fit ${post.tagColor}`}
+              <Link
+                href={`/blog/${post.slug}`}
+                className="glass-card p-6 h-full flex flex-col hover:border-emerald-500/20 cursor-pointer group hover:shadow-glow transition-all duration-300 block"
               >
-                {post.tag}
-              </span>
-              <h3 className="text-white font-bold text-lg mb-3 group-hover:gradient-text transition-colors leading-snug font-display">
-                {post.title}
-              </h3>
-              <p className="text-slate-400 text-sm leading-relaxed flex-1">{post.excerpt}</p>
-              <p className="text-slate-600 text-xs mt-4">{post.readTime}</p>
+                <span
+                  className={`inline-block px-3 py-1 text-xs font-semibold rounded-full border mb-4 w-fit ${post.tagColor}`}
+                >
+                  {post.tag}
+                </span>
+                <h3 className="text-white font-bold text-lg mb-3 group-hover:text-emerald-300 transition-colors leading-snug font-display">
+                  {post.title}
+                </h3>
+                <p className="text-slate-400 text-sm leading-relaxed flex-1">{post.excerpt}</p>
+                <p className="text-slate-600 text-xs mt-4">{post.readTime}</p>
+              </Link>
             </motion.div>
           ))}
         </div>

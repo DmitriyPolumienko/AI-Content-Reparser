@@ -60,13 +60,13 @@ export default function Dashboard() {
           keywords: settings.keywords,
         }),
       });
-      if (!res.ok) throw new Error("Generation failed");
+      if (!res.ok) throw new Error("Generation failed. Please try again.");
       const data = await res.json();
       setGeneratedContent(data.content);
       setWordsRemaining(data.words_remaining ?? wordsRemaining);
       setStep(4);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -89,7 +89,7 @@ export default function Dashboard() {
       <header className="relative z-10 border-b border-white/5 bg-black/30 backdrop-blur-xl sticky top-0">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 group">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-600 to-cyan-500 flex items-center justify-center text-white font-bold text-xs shadow-glow">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-600 to-emerald-400 flex items-center justify-center text-white font-bold text-xs shadow-glow">
               AI
             </div>
             <span className="font-bold text-white text-sm font-display">
@@ -105,67 +105,79 @@ export default function Dashboard() {
             </div>
             <button
               onClick={handleStartOver}
-              className="text-xs text-slate-500 hover:text-white transition-colors"
+              className="text-xs text-slate-500 hover:text-emerald-400 transition-colors"
             >
-              Start Over
+              ↺ Start Over
             </button>
           </div>
         </div>
       </header>
 
       <main className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 py-10">
-        {/* Step indicators */}
-        <div className="flex items-center gap-2 mb-10 overflow-x-auto pb-2">
-          {STEPS.map((s, i) => (
-            <div key={s.num} className="flex items-center gap-2 flex-shrink-0">
-              <div
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 ${
-                  step === s.num
-                    ? "border text-violet-300"
-                    : step > s.num
-                    ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
-                    : "bg-white/5 border border-white/10 text-slate-500"
-                }`}
-                style={
-                  step === s.num
-                    ? {
-                        background: "linear-gradient(135deg, rgba(124,58,237,0.2), rgba(6,182,212,0.1))",
-                        borderColor: "rgba(124,58,237,0.4)",
-                      }
-                    : {}
-                }
-              >
-                <span
-                  className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
-                    step > s.num
-                      ? "bg-emerald-500 text-white"
-                      : step === s.num
-                      ? "text-white"
-                      : "bg-white/10 text-slate-500"
+        {/* Step indicators — gradient progress bar */}
+        <div className="mb-10">
+          {/* Progress bar */}
+          <div className="h-1 bg-white/5 rounded-full mb-4 overflow-hidden">
+            <motion.div
+              className="h-full rounded-full"
+              animate={{ width: `${((step - 1) / (STEPS.length - 1)) * 100}%` }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+              style={{ background: "linear-gradient(90deg, #10B981, #059669)" }}
+            />
+          </div>
+          {/* Step labels */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1">
+            {STEPS.map((s, i) => (
+              <div key={s.num} className="flex items-center gap-2 flex-shrink-0">
+                <div
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 ${
+                    step === s.num
+                      ? "border text-emerald-300"
+                      : step > s.num
+                      ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
+                      : "bg-white/5 border border-white/10 text-slate-500"
                   }`}
                   style={
                     step === s.num
-                      ? { background: "linear-gradient(135deg, #7C3AED, #06B6D4)" }
+                      ? {
+                          background: "linear-gradient(135deg, rgba(16,185,129,0.15), rgba(5,150,105,0.1))",
+                          borderColor: "rgba(16,185,129,0.4)",
+                        }
                       : {}
                   }
                 >
-                  {step > s.num ? "✓" : s.num}
-                </span>
-                <span className="hidden sm:block">{s.label}</span>
-              </div>
-              {i < STEPS.length - 1 && (
-                <div
-                  className="h-px w-6 transition-all duration-500"
-                  style={{
-                    background:
+                  <span
+                    className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
                       step > s.num
-                        ? "linear-gradient(90deg, #10B981, #06B6D4)"
-                        : "rgba(255,255,255,0.08)",
-                  }}
-                />
-              )}
-            </div>
-          ))}
+                        ? "bg-emerald-500 text-white"
+                        : step === s.num
+                        ? "text-white"
+                        : "bg-white/10 text-slate-500"
+                    }`}
+                    style={
+                      step === s.num
+                        ? { background: "linear-gradient(135deg, #10B981, #059669)" }
+                        : {}
+                    }
+                  >
+                    {step > s.num ? "✓" : s.num}
+                  </span>
+                  <span className="hidden sm:block">{s.label}</span>
+                </div>
+                {i < STEPS.length - 1 && (
+                  <div
+                    className="h-px w-6 transition-all duration-500"
+                    style={{
+                      background:
+                        step > s.num
+                          ? "linear-gradient(90deg, #10B981, #059669)"
+                          : "rgba(255,255,255,0.08)",
+                    }}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Step content */}
@@ -213,16 +225,16 @@ export default function Dashboard() {
                     <motion.p
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      className="text-red-400 text-sm"
+                      className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3"
                     >
-                      {error}
+                      ⚠️ {error}
                     </motion.p>
                   )}
 
                   {loading && (
                     <div className="mt-6">
                       <p className="text-slate-400 text-sm mb-4 flex items-center gap-2">
-                        <svg className="w-4 h-4 animate-spin text-violet-400" fill="none" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 animate-spin text-emerald-400" fill="none" viewBox="0 0 24 24">
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                         </svg>
@@ -262,7 +274,7 @@ export default function Dashboard() {
                     </button>
                     <button
                       onClick={handleStartOver}
-                      className="text-sm text-violet-400 hover:text-violet-300 transition-colors"
+                      className="text-sm text-emerald-400 hover:text-emerald-300 transition-colors"
                     >
                       + New Content
                     </button>

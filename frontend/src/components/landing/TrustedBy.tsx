@@ -43,7 +43,7 @@ export default function TrustedBy() {
               key={company.name}
               className="flex items-center gap-2 mx-10 glass px-5 py-2.5 rounded-xl shrink-0"
             >
-              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-600/50 to-cyan-500/50 flex items-center justify-center text-white font-bold text-xs">
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-600/50 to-emerald-400/50 flex items-center justify-center text-white font-bold text-xs">
                 {company.logo}
               </div>
               <span className="text-slate-400 text-sm font-medium whitespace-nowrap">
