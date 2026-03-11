@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Navbar from "@/components/landing/Navbar";
+import Breadcrumbs from "@/components/ui/Breadcrumbs";
 
 export const metadata: Metadata = {
-  title: "Blog — AI Content Reparser",
+  title: "Blog — V2Post",
   description: "Insights on AI content creation, SEO strategies, and video repurposing for creators.",
 };
 
@@ -42,38 +44,10 @@ const posts = [
 export default function BlogPage() {
   return (
     <div className="min-h-screen bg-[#030014] text-white">
-      {/* Header */}
-      <header className="border-b border-white/5 bg-black/30 backdrop-blur-xl sticky top-0 z-50">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-600 to-emerald-400 flex items-center justify-center text-white font-bold text-xs">
-              AI
-            </div>
-            <span className="font-bold text-white text-sm font-display">
-              Content{" "}
-              <span
-                style={{
-                  background: "linear-gradient(135deg, #10B981, #059669)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  backgroundClip: "text",
-                }}
-              >
-                Reparser
-              </span>
-            </span>
-          </Link>
-          <Link
-            href="/dashboard"
-            className="px-4 py-2 rounded-xl text-sm font-semibold text-white"
-            style={{ background: "linear-gradient(135deg, #10B981, #059669)" }}
-          >
-            Get Started →
-          </Link>
-        </div>
-      </header>
+      <Navbar variant="landing" />
+      <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Blog" }]} />
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-16">
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
         {/* Page header */}
         <div className="mb-12">
           <span className="inline-block px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-medium mb-4">

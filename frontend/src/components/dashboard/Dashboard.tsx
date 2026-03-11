@@ -13,6 +13,7 @@ import LoadingProgress from "./LoadingProgress";
 import GradientOrbs from "@/components/effects/GradientOrbs";
 import ShimmerButton from "@/components/effects/ShimmerButton";
 import Navbar from "@/components/landing/Navbar";
+import Breadcrumbs from "@/components/ui/Breadcrumbs";
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -113,6 +114,11 @@ export default function Dashboard() {
           </div>
         </div>
       </header>
+
+      <Breadcrumbs
+        items={[{ label: "Home", href: "/" }, { label: "Dashboard" }]}
+        className="max-w-5xl mx-auto px-4 sm:px-6 py-3"
+      />
 
       <main className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 pb-10 pt-24">
         {/* Step indicators — gradient progress bar */}
