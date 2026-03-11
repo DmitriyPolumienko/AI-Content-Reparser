@@ -44,7 +44,7 @@ export default function UrlInput({ onExtract }: UrlInputProps) {
     setError("");
     setLoading(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/extract`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/extract`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: url.trim() }),
