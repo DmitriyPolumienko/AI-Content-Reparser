@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 
 const featured = {
   quote:
-    "AI Content Reparser cut my content production time by 80%. I used to spend 3 hours writing one article. Now it takes 10 minutes. This tool is an absolute game-changer for creators.",
+    "V2Post cut my content production time by 80%. I used to spend 3 hours writing one article. Now it takes 10 minutes. This tool is an absolute game-changer for creators.",
   name: "Alex Rivera",
   role: "YouTube Creator · 2.1M Subscribers",
 };

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import Navbar from "@/components/landing/Navbar";
+import Breadcrumbs from "@/components/ui/Breadcrumbs";
 
 interface BlogPost {
   slug: string;
@@ -290,7 +292,7 @@ export async function generateMetadata({
   const post = posts[slug];
   if (!post) return { title: "Post Not Found" };
   return {
-    title: `${post.title} — AI Content Reparser Blog`,
+    title: `${post.title} — V2Post Blog`,
     description: post.excerpt,
   };
 }
@@ -387,43 +389,16 @@ export default async function BlogPostPage({
 
   return (
     <div className="min-h-screen bg-[#030014] text-white">
-      {/* Header */}
-      <header className="border-b border-white/5 bg-black/30 backdrop-blur-xl sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-600 to-emerald-400 flex items-center justify-center text-white font-bold text-xs">
-              AI
-            </div>
-            <span className="font-bold text-white text-sm font-display">
-              Content{" "}
-              <span
-                style={{
-                  background: "linear-gradient(135deg, #10B981, #059669)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  backgroundClip: "text",
-                }}
-              >
-                Reparser
-              </span>
-            </span>
-          </Link>
-          <div className="flex items-center gap-3">
-            <Link href="/blog" className="text-sm text-slate-400 hover:text-white transition-colors">
-              ← Blog
-            </Link>
-            <Link
-              href="/dashboard"
-              className="px-4 py-2 rounded-xl text-sm font-semibold text-white"
-              style={{ background: "linear-gradient(135deg, #10B981, #059669)" }}
-            >
-              Try Free →
-            </Link>
-          </div>
-        </div>
-      </header>
+      <Navbar variant="landing" />
+      <Breadcrumbs
+        items={[
+          { label: "Home", href: "/" },
+          { label: "Blog", href: "/blog" },
+          { label: post.title },
+        ]}
+      />
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-16">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
         {/* Hero area */}
         <div
           className="rounded-3xl p-8 md:p-12 mb-12 relative overflow-hidden"

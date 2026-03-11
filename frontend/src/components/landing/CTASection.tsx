@@ -42,13 +42,32 @@ export default function CTASection() {
                 Start Creating for Free →
               </ShimmerButton>
             </Link>
-            <button className="px-8 py-4 text-slate-400 hover:text-white border border-white/10 rounded-xl transition-all hover:border-emerald-500/30 hover:bg-emerald-500/5">
-              View Live Demo
-            </button>
           </div>
           <p className="text-slate-600 text-sm mt-6">
             5,000 words free every month • No credit card required
           </p>
+
+          {/* Demo video placeholder */}
+          <div className="mt-12 max-w-3xl mx-auto">
+            <button
+              type="button"
+              aria-label="Watch how V2Post works — demo video coming soon"
+              className="w-full glass-card rounded-2xl overflow-hidden aspect-video relative group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+            >
+              {/* Gradient placeholder background */}
+              <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/50 to-black/80" />
+              {/* Video overlay — replace with a <video> or <iframe> when the actual demo URL is available */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 group-hover:bg-black/20 transition-all duration-300">
+                <div className="w-16 h-16 rounded-full bg-emerald-500/90 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <svg className="w-6 h-6 text-white ml-1" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </div>
+                <p className="text-white font-medium text-lg">Watch how V2Post works</p>
+                <p className="text-slate-400 text-sm mt-1">See the full process in 60 seconds</p>
+              </div>
+            </button>
+          </div>
         </motion.div>
       </div>
     </section>

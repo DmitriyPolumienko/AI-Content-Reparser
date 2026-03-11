@@ -72,7 +72,7 @@ export default function Features() {
             <span className="gradient-text">scale content</span>
           </h2>
           <p className="text-slate-400 max-w-xl mx-auto text-lg">
-            AI Content Reparser handles the hard work so you can focus on growing your audience.
+            V2Post handles the hard work so you can focus on growing your audience.
           </p>
         </motion.div>
 
