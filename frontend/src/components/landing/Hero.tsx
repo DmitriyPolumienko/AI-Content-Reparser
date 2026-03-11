@@ -10,10 +10,18 @@ import TypewriterText from "@/components/effects/TypewriterText";
 
 // Dynamic live counter
 function LiveCounter() {
-  const [count, setCount] = useState(() => 127849 + Math.floor(Math.random() * 1000));
+  const [count, setCount] = useState(127849); // fixed initial value — no hydration mismatch
+  const [mounted, setMounted] = useState(false);
   const [animating, setAnimating] = useState(false);
 
   useEffect(() => {
+    // Randomize only on the client after hydration is complete
+    setCount(127849 + Math.floor(Math.random() * 1000));
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
     const tick = () => {
       const delay = 1000 + Math.random() * 4000;
       const timer = setTimeout(() => {
@@ -26,7 +34,7 @@ function LiveCounter() {
     };
     const timer = tick();
     return () => clearTimeout(timer);
-  }, []);
+  }, [mounted]);
 
   return (
     <span
