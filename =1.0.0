@@ -1,0 +1,11 @@
+Defaulting to user installation because normal site-packages is not writeable
+Collecting youtube-transcript-api
+  Downloading youtube_transcript_api-1.2.4-py3-none-any.whl.metadata (24 kB)
+Collecting defusedxml<0.8.0,>=0.7.1 (from youtube-transcript-api)
+  Downloading defusedxml-0.7.1-py2.py3-none-any.whl.metadata (32 kB)
+Requirement already satisfied: requests in /usr/lib/python3/dist-packages (from youtube-transcript-api) (2.31.0)
+Downloading youtube_transcript_api-1.2.4-py3-none-any.whl (485 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 485.2/485.2 kB 102.7 MB/s eta 0:00:00
+Downloading defusedxml-0.7.1-py2.py3-none-any.whl (25 kB)
+Installing collected packages: defusedxml, youtube-transcript-api
+Successfully installed defusedxml-0.7.1 youtube-transcript-api-1.2.4
