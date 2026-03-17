@@ -7,7 +7,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from slowapi import _rate_limit_exceeded_handler
 
 from app.limiter import limiter
-from app.routers import extract, generate
+from app.routers import extract, generate, transcripts
 
 app = FastAPI(
     title="V2Post API",
@@ -43,6 +43,7 @@ app.add_middleware(
 
 app.include_router(extract.router, prefix="/api")
 app.include_router(generate.router, prefix="/api")
+app.include_router(transcripts.router, prefix="/api", tags=["transcripts"])
 
 
 @app.get("/")
