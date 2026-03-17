@@ -136,16 +136,22 @@ class YouTubeExtractor(VideoExtractor):
                 auto_captions = []
 
                 for caption in captions:
+                    # Clean caption name: remove any existing auto-generated markers
+                    # to avoid duplicates like "English (auto-generated) (auto-generated)"
+                    clean_name = re.sub(r"\s*\(auto-generated\)\s*", "", caption.name, flags=re.IGNORECASE)
+                    clean_name = re.sub(r"\s*\(automatic\)\s*", "", clean_name, flags=re.IGNORECASE)
+                    clean_name = clean_name.strip()
+
                     caption_info = {
                         # Strip the 'a.' prefix so callers receive a plain language code (e.g. 'en')
                         "language_code": self._bare_lang_code(caption.code),
-                        "language_name": caption.name,
+                        "language_name": clean_name,
                         "is_generated": self._is_auto_generated(caption),
                         "is_translatable": False,
                     }
 
                     if caption_info["is_generated"]:
-                        caption_info["language_name"] = f"{caption.name} (auto-generated)"
+                        caption_info["language_name"] = f"{clean_name} (auto-generated)"
                         auto_captions.append(caption_info)
                     else:
                         manual_captions.append(caption_info)
@@ -284,7 +290,10 @@ class YouTubeExtractor(VideoExtractor):
     @staticmethod
     def _parse_srt_to_text(srt_content: str) -> str:
         """
-        Parse SRT subtitle format and extract only the text.
+        Parse SRT subtitle format with intelligent paragraph breaks.
+
+        Uses temporal gaps (>2.5s) and sentence-ending punctuation to group
+        subtitles into natural paragraphs separated by double newlines.
 
         SRT format:
         1
@@ -295,20 +304,79 @@ class YouTubeExtractor(VideoExtractor):
         00:00:02,000 --> 00:00:04,000
         Second line
         """
-        lines = srt_content.split("\n")
-        text_parts = []
+        # Parse SRT entries with timestamps
+        entries = []
+        blocks = srt_content.strip().split("\n\n")
 
-        for line in lines:
-            line = line.strip()
-            # Skip empty lines, sequence numbers, and timestamps
-            if not line or line.isdigit() or "-->" in line:
-                continue
+        for block in blocks:
+            lines = block.strip().split("\n")
+            if len(lines) >= 3:
+                # Line 0: sequence number
+                # Line 1: timestamp (00:00:00,000 --> 00:00:05,000)
+                # Line 2+: subtitle text
+                timestamp_line = lines[1]
+                text_lines = lines[2:]
 
-            # Remove any HTML tags that might be present
-            line = re.sub(r"<[^>]+>", "", line)
+                # Extract start time from timestamp
+                start_match = re.search(
+                    r"(\d{2}):(\d{2}):(\d{2}),(\d{3})\s*-->", timestamp_line
+                )
+                if start_match:
+                    h, m, s, ms = map(int, start_match.groups())
+                    start_time = h * 3600 + m * 60 + s + ms / 1000
 
-            if line:
-                text_parts.append(line)
+                    # Clean text: remove HTML tags, join multiple lines
+                    text = " ".join(text_lines).strip()
+                    text = re.sub(r"<[^>]+>", "", text)
 
-        return " ".join(text_parts)
+                    if text:
+                        entries.append(
+                            {
+                                "time": start_time,
+                                "text": text,
+                                "ends_sentence": text.rstrip().endswith(
+                                    (".", "!", "?", "\u2026")
+                                ),
+                            }
+                        )
+
+        if not entries:
+            # Fallback: return original text cleaned of HTML tags
+            return re.sub(r"<[^>]+>", "", srt_content)
+
+        # Build text with smart paragraph breaks
+        paragraphs = []
+        current_paragraph: list[str] = []
+        sentence_count = 0
+
+        for i, entry in enumerate(entries):
+            current_paragraph.append(entry["text"])
+            if entry["ends_sentence"]:
+                sentence_count += 1
+
+            should_break = False
+
+            if i < len(entries) - 1:
+                next_gap = entries[i + 1]["time"] - entry["time"]
+
+                # Rule 1: Long temporal gap (pause >2.5s between subtitles)
+                if next_gap > 2.5:
+                    should_break = True
+
+                # Rule 2: Sentence boundary with a moderate gap (>1.5s)
+                if entry["ends_sentence"] and next_gap > 1.5:
+                    should_break = True
+
+            # Rule 3: Paragraph getting too long (>=5 sentence-ending entries)
+            if entry["ends_sentence"] and sentence_count >= 5:
+                should_break = True
+
+            if should_break or i == len(entries) - 1:
+                para_text = " ".join(current_paragraph).strip()
+                if para_text:
+                    paragraphs.append(para_text)
+                current_paragraph = []
+                sentence_count = 0
+
+        return "\n\n".join(paragraphs)
 
