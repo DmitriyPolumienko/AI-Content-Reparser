@@ -83,6 +83,7 @@ Add the Supabase credentials to your backend and frontend `.env` files (see
 | `ALLOWED_ORIGINS_REGEX` | Regex pattern for dynamic CORS origins (default: `https://.*\.vercel\.app`) |
 | `SUPABASE_URL` | Supabase project URL |
 | `SUPABASE_KEY` | Supabase **service role** secret key (server-side only) |
+| `WEBSHARE_PROXY_LIST` | *(Optional)* Comma-separated proxies in `IP:PORT:USER:PASS` format (see [Proxy Configuration](#-proxy-configuration-optional)) |
 
 ### Frontend (`frontend/.env.local`)
 
@@ -114,8 +115,31 @@ Add the Supabase credentials to your backend and frontend `.env` files (see
 - **"Transcripts are disabled"** – The video owner has disabled captions. Try a different video.
 - **"No transcript found"** – The video has no English or Russian captions. Try adding `&hl=en` to the URL or choose a video with captions.
 - **Private / age-restricted videos** – These cannot be accessed without authentication.
+- **"YouTube is blocking requests from your IP"** – Your hosting provider's IP is blocked by YouTube. Configure `WEBSHARE_PROXY_LIST` (see [Proxy Configuration](#-proxy-configuration-optional)).
 
 ---
+
+## 🔧 Proxy Configuration (Optional)
+
+If you host the backend on a cloud provider (Render, Railway, AWS, etc.), YouTube may block transcript extraction requests because datacenter IPs are frequently blocked.
+
+### Setup Webshare Proxies
+
+1. Get residential proxies from [Webshare.io](https://www.webshare.io/)
+2. Format your proxy list as `IP:PORT:USERNAME:PASSWORD`, one proxy per entry, comma-separated
+3. Add to your environment (e.g. Render Dashboard → Environment):
+
+```
+WEBSHARE_PROXY_LIST=31.59.20.176:6754:user:pass,23.95.150.145:6114:user:pass,...
+```
+
+The backend automatically selects a random proxy per request and retries up to 3 times with different proxies on failure.
+
+### Local Development
+
+Leave `WEBSHARE_PROXY_LIST` empty — YouTube does not typically block residential IPs.
+
+
 
 ## 🚀 Deployment
 
