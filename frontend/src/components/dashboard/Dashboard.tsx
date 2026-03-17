@@ -121,6 +121,55 @@ export default function Dashboard() {
       />
 
       <main className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 pb-10 pt-24">
+        {/* Stats banner — placeholder metrics; replace with real API data when available */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="grid grid-cols-3 gap-4 mb-6"
+        >
+          <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                <svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-white">247</p>
+                <p className="text-xs text-slate-500">Videos Processed</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-white">~2m</p>
+                <p className="text-xs text-slate-500">Avg Processing Time</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                <svg className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-white">98.5%</p>
+                <p className="text-xs text-slate-500">Success Rate</p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
         {/* Step indicators — gradient progress bar */}
         <div className="mb-10">
           {/* Progress bar */}
@@ -290,6 +339,36 @@ export default function Dashboard() {
             </motion.div>
           </AnimatePresence>
         </div>
+
+        {/* Quick tips */}
+        {!loading && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="mt-8 bg-gradient-to-r from-slate-800/50 to-slate-900/50 border border-white/5 rounded-xl p-6"
+          >
+            <h3 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
+              <span>💡</span> Pro Tips
+            </h3>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="flex gap-3">
+                <span className="text-emerald-400">→</span>
+                <div>
+                  <p className="text-sm text-slate-300 font-medium">Choose the right language</p>
+                  <p className="text-xs text-slate-500 mt-1">Manual transcripts are more accurate than auto-generated ones</p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <span className="text-emerald-400">→</span>
+                <div>
+                  <p className="text-sm text-slate-300 font-medium">Videos with good audio work best</p>
+                  <p className="text-xs text-slate-500 mt-1">Clear speech = better auto-generated captions</p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
       </main>
     </div>
   );

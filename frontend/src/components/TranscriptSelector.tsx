@@ -16,6 +16,47 @@ interface TranscriptSelectorProps {
   onSelect: (language: string, preferManual: boolean) => void;
 }
 
+const LANGUAGE_FLAGS: Record<string, string> = {
+  en: "🇬🇧",
+  ar: "🇸🇦",
+  bn: "🇧🇩",
+  zh: "🇨🇳",
+  "zh-Hans": "🇨🇳",
+  "zh-Hant": "🇹🇼",
+  fr: "🇫🇷",
+  de: "🇩🇪",
+  hi: "🇮🇳",
+  id: "🇮🇩",
+  it: "🇮🇹",
+  ja: "🇯🇵",
+  ko: "🇰🇷",
+  pt: "🇵🇹",
+  ru: "🇷🇺",
+  es: "🇪🇸",
+  tr: "🇹🇷",
+  vi: "🇻🇳",
+  th: "🇹🇭",
+  pl: "🇵🇱",
+  nl: "🇳🇱",
+  sv: "🇸🇪",
+  uk: "🇺🇦",
+  ro: "🇷🇴",
+  el: "🇬🇷",
+  cs: "🇨🇿",
+  da: "🇩🇰",
+  fi: "🇫🇮",
+  hu: "🇭🇺",
+  no: "🇳🇴",
+  sk: "🇸🇰",
+  he: "🇮🇱",
+  fa: "🇮🇷",
+};
+
+function getLanguageFlag(code: string): string {
+  const baseCode = code.split("-")[0];
+  return LANGUAGE_FLAGS[code] ?? LANGUAGE_FLAGS[baseCode] ?? "🌐";
+}
+
 export default function TranscriptSelector({ url, onSelect }: TranscriptSelectorProps) {
   const [options, setOptions] = useState<TranscriptOption[]>([]);
   const [loading, setLoading] = useState(false);
@@ -83,6 +124,30 @@ export default function TranscriptSelector({ url, onSelect }: TranscriptSelector
         )}
       </ShimmerButton>
 
+      {/* Skeleton loader while fetching */}
+      <AnimatePresence>
+        {loading && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="space-y-2"
+          >
+            <p className="text-sm font-medium text-slate-300">Fetching available transcripts...</p>
+            <div className="space-y-2">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="h-10 bg-white/5 border border-white/10 rounded-xl animate-pulse"
+                  style={{ animationDelay: `${i * 100}ms` }}
+                />
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Error message */}
       <AnimatePresence>
         {error && (
           <motion.p
@@ -99,6 +164,7 @@ export default function TranscriptSelector({ url, onSelect }: TranscriptSelector
         )}
       </AnimatePresence>
 
+      {/* Language selection grid */}
       <AnimatePresence>
         {analyzed && options.length > 1 && (
           <motion.div
@@ -107,22 +173,23 @@ export default function TranscriptSelector({ url, onSelect }: TranscriptSelector
             exit={{ opacity: 0 }}
             className="space-y-2"
           >
-            <p className="text-sm font-medium text-slate-300">Select transcript:</p>
-            <div className="flex flex-col gap-2">
+            <p className="text-sm font-medium text-slate-300">
+              Select transcript:{" "}
+              <span className="text-slate-500 font-normal">({options.length} available)</span>
+            </p>
+            <div className={`grid gap-2 ${options.length > 6 ? "grid-cols-2" : "grid-cols-1"}`}>
               {options.map((option, idx) => (
                 <button
                   key={idx}
                   onClick={() => handleSelect(idx)}
-                  className={`text-left px-4 py-2.5 rounded-xl border text-sm transition-all duration-200 ${
+                  className={`text-left px-3 py-2 rounded-xl border text-sm transition-all duration-200 flex items-center gap-2 ${
                     selectedIndex === idx
                       ? "border-emerald-500/60 bg-emerald-500/10 text-emerald-300"
                       : "border-white/10 bg-white/5 text-slate-400 hover:border-white/20 hover:text-slate-300"
                   }`}
                 >
-                  <span className="font-medium">{option.language_name}</span>
-                  {option.is_translatable && (
-                    <span className="ml-2 text-xs text-slate-500">• translatable</span>
-                  )}
+                  <span className="text-base" aria-label={option.language_code}>{getLanguageFlag(option.language_code)}</span>
+                  <span className="font-medium truncate">{option.language_name}</span>
                 </button>
               ))}
             </div>
