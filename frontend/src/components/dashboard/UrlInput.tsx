@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ShimmerButton from "@/components/effects/ShimmerButton";
 import LoadingProgress from "./LoadingProgress";
+import TranscriptSelector from "@/components/TranscriptSelector";
 
 interface UrlInputProps {
   onExtract: (url: string, transcript: string) => void;
@@ -32,6 +33,27 @@ export default function UrlInput({ onExtract }: UrlInputProps) {
   const [error, setError] = useState("");
   const [showTooltip, setShowTooltip] = useState(false);
 
+  // Two-step flow state
+  const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
+  const [preferManual, setPreferManual] = useState(true);
+  const [transcriptReady, setTranscriptReady] = useState(false);
+  const [analyzeKey, setAnalyzeKey] = useState(0);
+
+  const handleTranscriptSelect = (language: string, manual: boolean) => {
+    setSelectedLanguage(language);
+    setPreferManual(manual);
+    setTranscriptReady(true);
+  };
+
+  const handleUrlChange = (newUrl: string) => {
+    setUrl(newUrl);
+    if (error) setError("");
+    // Reset selection when URL changes
+    setSelectedLanguage(null);
+    setTranscriptReady(false);
+    setAnalyzeKey((k) => k + 1);
+  };
+
   const handleExtract = async () => {
     if (!url.trim()) {
       setError("Please enter a YouTube URL");
@@ -47,7 +69,11 @@ export default function UrlInput({ onExtract }: UrlInputProps) {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/extract`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: url.trim() }),
+        body: JSON.stringify({
+          url: url.trim(),
+          language: selectedLanguage,
+          prefer_manual: preferManual,
+        }),
       });
       if (!res.ok) {
         let detail = "Failed to extract transcript. Make sure the video has captions enabled.";
@@ -67,6 +93,8 @@ export default function UrlInput({ onExtract }: UrlInputProps) {
       setLoading(false);
     }
   };
+
+  const urlValid = isValidYouTubeUrl(url.trim());
 
   return (
     <motion.div
@@ -126,32 +154,12 @@ export default function UrlInput({ onExtract }: UrlInputProps) {
             <input
               type="url"
               value={url}
-              onChange={(e) => {
-                setUrl(e.target.value);
-                if (error) setError("");
-              }}
-              onKeyDown={(e) => e.key === "Enter" && handleExtract()}
+              onChange={(e) => handleUrlChange(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && urlValid && e.currentTarget.blur()}
               placeholder="https://youtube.com/watch?v=..."
               className="w-full bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/60 focus:ring-2 focus:ring-emerald-500/20 transition-all duration-200 py-3 pl-10 pr-4 text-sm"
             />
           </div>
-          <ShimmerButton
-            onClick={handleExtract}
-            disabled={loading}
-            size="md"
-          >
-            {loading ? (
-              <>
-                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-                Extracting...
-              </>
-            ) : (
-              "Extract →"
-            )}
-          </ShimmerButton>
         </div>
 
         <AnimatePresence>
@@ -171,6 +179,36 @@ export default function UrlInput({ onExtract }: UrlInputProps) {
         </AnimatePresence>
       </div>
 
+      {/* Step 1: Analyze video to get available transcripts */}
+      {urlValid && (
+        <TranscriptSelector key={analyzeKey} url={url.trim()} onSelect={handleTranscriptSelect} />
+      )}
+
+      {/* Step 2: Extract the selected transcript */}
+      {transcriptReady && (
+        <AnimatePresence>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+          >
+            <ShimmerButton onClick={handleExtract} disabled={loading} size="md">
+              {loading ? (
+                <>
+                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Extracting...
+                </>
+              ) : (
+                "Extract Transcript →"
+              )}
+            </ShimmerButton>
+          </motion.div>
+        </AnimatePresence>
+      )}
+
       {/* Loading progress with fun facts */}
       {loading && (
         <LoadingProgress
@@ -183,9 +221,10 @@ export default function UrlInput({ onExtract }: UrlInputProps) {
       {!loading && (
         <div className="bg-emerald-500/5 border border-emerald-500/15 rounded-xl p-4">
           <p className="text-xs text-slate-400 leading-relaxed">
-            <span className="text-emerald-400 font-medium">How it works:</span> Paste a YouTube URL above and we&apos;ll
-            extract the video transcript automatically. Supports videos with auto-generated or manually
-            added captions. After extraction, you can edit the transcript before generating content.
+            <span className="text-emerald-400 font-medium">How it works:</span> Paste a YouTube URL above, click{" "}
+            <span className="text-emerald-400 font-medium">Analyze Video</span> to see available transcripts, then select
+            your preferred language and click{" "}
+            <span className="text-emerald-400 font-medium">Extract Transcript</span>.
           </p>
         </div>
       )}

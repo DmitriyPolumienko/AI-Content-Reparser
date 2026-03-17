@@ -41,7 +41,11 @@ def extract_transcript(extract_request: ExtractRequest, request: Request, backgr
             return ExtractResponse(transcript=transcript, word_count=len(transcript.split()))
 
         # --- Cache miss: extract via YouTube --------------------------------
-        transcript = _youtube_extractor.extract_transcript(url)
+        transcript = _youtube_extractor.extract_transcript(
+            url,
+            language=extract_request.language,
+            prefer_manual=extract_request.prefer_manual,
+        )
         word_count = len(transcript.split())
 
         # --- Persist to cache + DB in background (non-blocking) -------------

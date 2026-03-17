@@ -109,10 +109,76 @@ class YouTubeExtractor(VideoExtractor):
         """Public method to extract the YouTube video ID from a URL."""
         return self._extract_video_id(url)
 
-    def extract_transcript(self, url: str) -> str:
+    def list_transcripts(self, url: str) -> list:
+        """
+        List available transcripts for a YouTube video without downloading them.
+
+        Returns a list of dicts with keys: language_code, language_name, is_generated, is_translatable.
+        Manual transcripts are listed before auto-generated ones.
+        """
+        video_id = self._extract_video_id(url)
+
+        proxy_active = self._rotating_proxy_configured() or bool(self._legacy_proxy_list)
+        max_attempts = self.MAX_PROXY_RETRIES if proxy_active else 1
+        last_exception: Exception | None = None
+
+        for attempt in range(max_attempts):
+            try:
+                proxy_config = self._get_proxy_config()
+                ytt_api = YouTubeTranscriptApi(proxy_config=proxy_config)
+                transcript_list = ytt_api.list_transcripts(video_id)
+
+                available = []
+                for t in transcript_list:
+                    if not t.is_generated:
+                        available.append({
+                            "language_code": t.language_code,
+                            "language_name": t.language,
+                            "is_generated": False,
+                            "is_translatable": t.is_translatable,
+                        })
+                for t in transcript_list:
+                    if t.is_generated:
+                        available.append({
+                            "language_code": t.language_code,
+                            "language_name": f"{t.language} (auto-generated)",
+                            "is_generated": True,
+                            "is_translatable": t.is_translatable,
+                        })
+
+                logger.info("Listed %d transcripts for %s", len(available), video_id)
+                return available
+
+            except TranscriptsDisabled:
+                raise ValueError("Transcripts are disabled for this video.")
+
+            except Exception as exc:
+                last_exception = exc
+                logger.warning("List attempt %d failed: %s", attempt + 1, exc)
+
+        error_msg = f"Failed to list transcripts after {max_attempts} attempt(s)."
+        if proxy_active:
+            error_msg += " All proxies failed. YouTube may be blocking these IPs."
+        else:
+            error_msg += " No proxies configured. YouTube is likely blocking your server IP."
+
+        raise RuntimeError(f"{error_msg} Last error: {last_exception}") from last_exception
+
+    def extract_transcript(
+        self,
+        url: str,
+        language: str | None = None,
+        prefer_manual: bool = True,
+    ) -> str:
         """
         Extract transcript from YouTube video.
         Uses proxy rotation with retry logic if proxies are configured.
+
+        Args:
+            url: YouTube video URL.
+            language: YouTube language code (e.g. "en", "ru"). If None, falls back to
+                      ["en", "ru"] in order of preference.
+            prefer_manual: When True, prefer manual transcripts over auto-generated ones.
         """
         video_id = self._extract_video_id(url)
 
@@ -125,16 +191,19 @@ class YouTubeExtractor(VideoExtractor):
                 # A new instance is created per attempt so each attempt can use a different proxy
                 proxy_config = self._get_proxy_config()
                 ytt_api = YouTubeTranscriptApi(proxy_config=proxy_config)
-                transcript = ytt_api.fetch(video_id, languages=["en", "ru"])
-                text = " ".join(snippet.text for snippet in transcript)
+                transcript_list = ytt_api.list_transcripts(video_id)
+
+                lang_candidates = [language] if language else ["en", "ru"]
+
+                text = self._fetch_best_transcript(transcript_list, lang_candidates, prefer_manual)
                 logger.info("Successfully extracted transcript for %s (attempt %d)", video_id, attempt + 1)
                 return text
 
             except TranscriptsDisabled:
                 raise ValueError("Transcripts are disabled for this video.")
 
-            except NoTranscriptFound:
-                raise ValueError("No transcript found for this video in English or Russian.")
+            except (NoTranscriptFound, ValueError) as exc:
+                raise ValueError(str(exc))
 
             except Exception as exc:
                 last_exception = exc
@@ -147,3 +216,42 @@ class YouTubeExtractor(VideoExtractor):
             error_msg += " No proxies configured. YouTube is likely blocking your server IP."
 
         raise RuntimeError(f"{error_msg} Last error: {last_exception}") from last_exception
+
+    def _fetch_best_transcript(self, transcript_list, lang_candidates: list[str], prefer_manual: bool) -> str:
+        """
+        Fetch the best matching transcript from the list.
+
+        Tries manual first when prefer_manual=True, then falls back to auto-generated.
+        """
+        if prefer_manual:
+            # Try manual transcript first
+            try:
+                transcript = transcript_list.find_transcript(lang_candidates)
+                if not transcript.is_generated:
+                    return " ".join(snippet.text for snippet in transcript.fetch())
+            except NoTranscriptFound:
+                pass
+
+            # Fall back to auto-generated
+            try:
+                transcript = transcript_list.find_generated_transcript(lang_candidates)
+                return " ".join(snippet.text for snippet in transcript.fetch())
+            except NoTranscriptFound:
+                pass
+        else:
+            # Prefer auto-generated
+            try:
+                transcript = transcript_list.find_generated_transcript(lang_candidates)
+                return " ".join(snippet.text for snippet in transcript.fetch())
+            except NoTranscriptFound:
+                pass
+
+            # Fall back to manual
+            try:
+                transcript = transcript_list.find_transcript(lang_candidates)
+                return " ".join(snippet.text for snippet in transcript.fetch())
+            except NoTranscriptFound:
+                pass
+
+        lang_str = ", ".join(lang_candidates)
+        raise ValueError(f"No transcript found for language(s): {lang_str}")
