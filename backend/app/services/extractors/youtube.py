@@ -364,6 +364,15 @@ class YouTubeExtractor(VideoExtractor):
 
         return result
 
+    # Allowed URL prefixes for subtitle downloads (guards against SSRF)
+    _ALLOWED_SUBTITLE_HOSTS = (
+        "https://www.youtube.com/",
+        "https://youtube.com/",
+        "https://video.google.com/",
+        "https://redirector.googlevideo.com/",
+        "https://r1---sn-",   # YouTube CDN shard pattern
+    )
+
     def _download_subtitle(self, formats: list) -> str:
         """Download and parse subtitle content from the first supported format URL."""
         # Prefer json3/srv3 (JSON-based YouTube subtitle formats) for easy parsing.
@@ -380,16 +389,40 @@ class YouTubeExtractor(VideoExtractor):
             sub_url = fmt.get("url")
             if not sub_url:
                 continue
+            # Guard against SSRF by restricting to known YouTube/Google CDN hosts
+            if not self._is_trusted_subtitle_url(sub_url):
+                logger.warning("Skipping subtitle URL from untrusted host: %s", sub_url)
+                continue
             ext = fmt.get("ext", "")
             try:
                 response = requests.get(sub_url, timeout=15)
                 response.raise_for_status()
                 if ext in ("json3", "srv3"):
-                    return self._parse_json3(response.json())
+                    try:
+                        return self._parse_json3(response.json())
+                    except (ValueError, KeyError) as parse_exc:
+                        raise ValueError(f"Failed to parse subtitle JSON format: {parse_exc}") from parse_exc
                 # Fall back to stripping tags for VTT/TTML
                 return self._strip_subtitle_markup(response.text)
+            except ValueError:
+                raise
             except Exception as exc:
                 logger.warning("Failed to download subtitle format %s: %s", ext, exc)
+
+        raise ValueError("Could not download subtitle in any supported format")
+
+    @staticmethod
+    def _is_trusted_subtitle_url(url: str) -> bool:
+        """Return True if the subtitle URL originates from a trusted YouTube/Google host."""
+        from urllib.parse import urlparse
+        parsed = urlparse(url)
+        trusted_domains = (
+            "youtube.com",
+            "googlevideo.com",
+            "video.google.com",
+        )
+        host = parsed.netloc.lower()
+        return any(host == d or host.endswith("." + d) for d in trusted_domains)
 
         raise ValueError("Could not download subtitle in any supported format")
 
