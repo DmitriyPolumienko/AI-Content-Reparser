@@ -3,16 +3,101 @@ import os
 import random
 import logging
 
-from youtube_transcript_api import YouTubeTranscriptApi
-from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFound
+import requests
+import yt_dlp
 
 from app.services.extractors.base import VideoExtractor
 
 logger = logging.getLogger(__name__)
 
+# Mapping of common ISO 639-1 language codes to human-readable names.
+_LANG_NAMES: dict[str, str] = {
+    "af": "Afrikaans",
+    "ak": "Akan",
+    "sq": "Albanian",
+    "am": "Amharic",
+    "ar": "Arabic",
+    "hy": "Armenian",
+    "az": "Azerbaijani",
+    "eu": "Basque",
+    "be": "Belarusian",
+    "bem": "Bemba",
+    "bn": "Bengali",
+    "bs": "Bosnian",
+    "bg": "Bulgarian",
+    "ca": "Catalan",
+    "cs": "Czech",
+    "da": "Danish",
+    "nl": "Dutch",
+    "en": "English",
+    "eo": "Esperanto",
+    "et": "Estonian",
+    "fi": "Finnish",
+    "fr": "French",
+    "gl": "Galician",
+    "ka": "Georgian",
+    "de": "German",
+    "el": "Greek",
+    "gu": "Gujarati",
+    "he": "Hebrew",
+    "hi": "Hindi",
+    "hr": "Croatian",
+    "hu": "Hungarian",
+    "id": "Indonesian",
+    "is": "Icelandic",
+    "it": "Italian",
+    "ja": "Japanese",
+    "kn": "Kannada",
+    "kk": "Kazakh",
+    "km": "Khmer",
+    "ko": "Korean",
+    "lo": "Lao",
+    "lv": "Latvian",
+    "lt": "Lithuanian",
+    "mk": "Macedonian",
+    "ms": "Malay",
+    "ml": "Malayalam",
+    "mr": "Marathi",
+    "mn": "Mongolian",
+    "my": "Burmese",
+    "ne": "Nepali",
+    "no": "Norwegian",
+    "fa": "Persian",
+    "pl": "Polish",
+    "pt": "Portuguese",
+    "pa": "Punjabi",
+    "ro": "Romanian",
+    "ru": "Russian",
+    "sr": "Serbian",
+    "si": "Sinhala",
+    "sk": "Slovak",
+    "sl": "Slovenian",
+    "so": "Somali",
+    "es": "Spanish",
+    "sw": "Swahili",
+    "sv": "Swedish",
+    "tl": "Filipino",
+    "ta": "Tamil",
+    "te": "Telugu",
+    "th": "Thai",
+    "tr": "Turkish",
+    "uk": "Ukrainian",
+    "ur": "Urdu",
+    "uz": "Uzbek",
+    "vi": "Vietnamese",
+    "cy": "Welsh",
+    "xh": "Xhosa",
+    "yi": "Yiddish",
+    "yo": "Yoruba",
+    "zu": "Zulu",
+    "zh": "Chinese",
+    "zh-Hans": "Chinese (Simplified)",
+    "zh-Hant": "Chinese (Traditional)",
+}
+
 
 class YouTubeExtractor(VideoExtractor):
-    """Extracts transcripts from YouTube videos using youtube-transcript-api with proxy support."""
+    """Extracts transcripts from YouTube videos using yt-dlp with proxy support."""
 
     _URL_PATTERN = re.compile(
         r"(?:https?://)?(?:www\.)?(?:youtube\.com/watch\?v=|youtu\.be/)([A-Za-z0-9_-]{11})"
@@ -82,16 +167,15 @@ class YouTubeExtractor(VideoExtractor):
 
         return proxies
 
-    def _get_proxy_dict(self) -> dict | None:
-        """Returns proxy configuration as a dict for youtube-transcript-api static methods."""
+    def _get_proxy_url(self) -> str | None:
+        """Return a proxy URL string suitable for yt-dlp, or None if no proxy is configured."""
         if self._rotating_proxy_configured():
-            proxy_url = self._get_random_proxy()
-            return {"http": proxy_url, "https": proxy_url}
+            return self._get_random_proxy()
 
         if self._legacy_proxy_list:
             proxy_url = random.choice(self._legacy_proxy_list)
             logger.info("Using static proxy from list")
-            return {"http": proxy_url, "https": proxy_url}
+            return proxy_url
 
         return None
 
@@ -108,6 +192,22 @@ class YouTubeExtractor(VideoExtractor):
         """Public method to extract the YouTube video ID from a URL."""
         return self._extract_video_id(url)
 
+    def _build_ydl_opts(self, proxy_url: str | None) -> dict:
+        """Build yt-dlp options dict."""
+        opts: dict = {
+            "skip_download": True,
+            "quiet": True,
+            "no_warnings": True,
+        }
+        if proxy_url:
+            opts["proxy"] = proxy_url
+        return opts
+
+    @staticmethod
+    def _get_language_name(lang_code: str) -> str:
+        """Map language codes to human-readable names."""
+        return _LANG_NAMES.get(lang_code, lang_code.upper())
+
     def list_transcripts(self, url: str) -> list:
         """
         List available transcripts for a YouTube video without downloading them.
@@ -123,32 +223,42 @@ class YouTubeExtractor(VideoExtractor):
 
         for attempt in range(max_attempts):
             try:
-                proxies = self._get_proxy_dict()
-                transcript_list = YouTubeTranscriptApi.list_transcripts(video_id, proxies=proxies)
+                proxy_url = self._get_proxy_url()
+                ydl_opts = self._build_ydl_opts(proxy_url)
+
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(
+                        f"https://www.youtube.com/watch?v={video_id}",
+                        download=False,
+                    )
+
+                subtitles: dict = info.get("subtitles", {}) or {}
+                automatic_captions: dict = info.get("automatic_captions", {}) or {}
 
                 available = []
-                for t in transcript_list:
-                    if not t.is_generated:
+
+                # Manual subtitles first
+                for lang_code, formats in subtitles.items():
+                    if formats:
                         available.append({
-                            "language_code": t.language_code,
-                            "language_name": t.language,
+                            "language_code": lang_code,
+                            "language_name": self._get_language_name(lang_code),
                             "is_generated": False,
-                            "is_translatable": t.is_translatable,
+                            "is_translatable": False,
                         })
-                for t in transcript_list:
-                    if t.is_generated:
+
+                # Auto-generated subtitles second (skip languages already present as manual)
+                for lang_code, formats in automatic_captions.items():
+                    if formats and lang_code not in subtitles:
                         available.append({
-                            "language_code": t.language_code,
-                            "language_name": f"{t.language} (auto-generated)",
+                            "language_code": lang_code,
+                            "language_name": f"{self._get_language_name(lang_code)} (auto-generated)",
                             "is_generated": True,
-                            "is_translatable": t.is_translatable,
+                            "is_translatable": False,
                         })
 
                 logger.info("Listed %d transcripts for %s", len(available), video_id)
                 return available
-
-            except TranscriptsDisabled:
-                raise ValueError("Transcripts are disabled for this video.")
 
             except Exception as exc:
                 last_exception = exc
@@ -186,21 +296,28 @@ class YouTubeExtractor(VideoExtractor):
 
         for attempt in range(max_attempts):
             try:
-                # A fresh proxy dict is obtained per attempt to allow proxy rotation
-                proxies = self._get_proxy_dict()
-                transcript_list = YouTubeTranscriptApi.list_transcripts(video_id, proxies=proxies)
+                proxy_url = self._get_proxy_url()
+                ydl_opts = self._build_ydl_opts(proxy_url)
+
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(
+                        f"https://www.youtube.com/watch?v={video_id}",
+                        download=False,
+                    )
+
+                subtitles: dict = info.get("subtitles", {}) or {}
+                automatic_captions: dict = info.get("automatic_captions", {}) or {}
 
                 lang_candidates = [language] if language else ["en", "ru"]
 
-                text = self._fetch_best_transcript(transcript_list, lang_candidates, prefer_manual)
+                text = self._fetch_best_transcript(
+                    subtitles, automatic_captions, lang_candidates, prefer_manual
+                )
                 logger.info("Successfully extracted transcript for %s (attempt %d)", video_id, attempt + 1)
                 return text
 
-            except TranscriptsDisabled:
-                raise ValueError("Transcripts are disabled for this video.")
-
-            except (NoTranscriptFound, ValueError) as exc:
-                raise ValueError(str(exc))
+            except ValueError:
+                raise
 
             except Exception as exc:
                 last_exception = exc
@@ -214,41 +331,121 @@ class YouTubeExtractor(VideoExtractor):
 
         raise RuntimeError(f"{error_msg} Last error: {last_exception}") from last_exception
 
-    def _fetch_best_transcript(self, transcript_list, lang_candidates: list[str], prefer_manual: bool) -> str:
+    def _fetch_best_transcript(
+        self,
+        subtitles: dict,
+        automatic_captions: dict,
+        lang_candidates: list[str],
+        prefer_manual: bool,
+    ) -> str:
         """
-        Fetch the best matching transcript from the list.
+        Select and download the best matching subtitle track.
 
-        Tries manual first when prefer_manual=True, then falls back to auto-generated.
+        Applies prefer_manual preference, then falls back to the opposite type.
+        Raises ValueError if no matching transcript can be found.
         """
+        def _try_sources(primary: dict, fallback: dict) -> str | None:
+            for lang in lang_candidates:
+                if lang in primary and primary[lang]:
+                    return self._download_subtitle(primary[lang])
+            for lang in lang_candidates:
+                if lang in fallback and fallback[lang]:
+                    return self._download_subtitle(fallback[lang])
+            return None
+
         if prefer_manual:
-            # Try manual transcript first
-            try:
-                transcript = transcript_list.find_transcript(lang_candidates)
-                if not transcript.is_generated:
-                    return " ".join(snippet.text for snippet in transcript.fetch())
-            except NoTranscriptFound:
-                pass
-
-            # Fall back to auto-generated
-            try:
-                transcript = transcript_list.find_generated_transcript(lang_candidates)
-                return " ".join(snippet.text for snippet in transcript.fetch())
-            except NoTranscriptFound:
-                pass
+            result = _try_sources(subtitles, automatic_captions)
         else:
-            # Prefer auto-generated
-            try:
-                transcript = transcript_list.find_generated_transcript(lang_candidates)
-                return " ".join(snippet.text for snippet in transcript.fetch())
-            except NoTranscriptFound:
-                pass
+            result = _try_sources(automatic_captions, subtitles)
 
-            # Fall back to manual
-            try:
-                transcript = transcript_list.find_transcript(lang_candidates)
-                return " ".join(snippet.text for snippet in transcript.fetch())
-            except NoTranscriptFound:
-                pass
+        if result is None:
+            lang_str = ", ".join(lang_candidates)
+            raise ValueError(f"No transcript found for language(s): {lang_str}")
 
-        lang_str = ", ".join(lang_candidates)
-        raise ValueError(f"No transcript found for language(s): {lang_str}")
+        return result
+
+    # Allowed URL prefixes for subtitle downloads (guards against SSRF)
+    _ALLOWED_SUBTITLE_HOSTS = (
+        "https://www.youtube.com/",
+        "https://youtube.com/",
+        "https://video.google.com/",
+        "https://redirector.googlevideo.com/",
+        "https://r1---sn-",   # YouTube CDN shard pattern
+    )
+
+    def _download_subtitle(self, formats: list) -> str:
+        """Download and parse subtitle content from the first supported format URL."""
+        # Prefer json3/srv3 (JSON-based YouTube subtitle formats) for easy parsing.
+        preferred_exts = ("json3", "srv3", "vtt", "ttml")
+
+        def _sort_key(fmt: dict) -> int:
+            ext = fmt.get("ext", "")
+            try:
+                return preferred_exts.index(ext)
+            except ValueError:
+                return len(preferred_exts)
+
+        for fmt in sorted(formats, key=_sort_key):
+            sub_url = fmt.get("url")
+            if not sub_url:
+                continue
+            # Guard against SSRF by restricting to known YouTube/Google CDN hosts
+            if not self._is_trusted_subtitle_url(sub_url):
+                logger.warning("Skipping subtitle URL from untrusted host: %s", sub_url)
+                continue
+            ext = fmt.get("ext", "")
+            try:
+                response = requests.get(sub_url, timeout=15)
+                response.raise_for_status()
+                if ext in ("json3", "srv3"):
+                    try:
+                        return self._parse_json3(response.json())
+                    except (ValueError, KeyError) as parse_exc:
+                        raise ValueError(f"Failed to parse subtitle JSON format: {parse_exc}") from parse_exc
+                # Fall back to stripping tags for VTT/TTML
+                return self._strip_subtitle_markup(response.text)
+            except ValueError:
+                raise
+            except Exception as exc:
+                logger.warning("Failed to download subtitle format %s: %s", ext, exc)
+
+        raise ValueError("Could not download subtitle in any supported format")
+
+    @staticmethod
+    def _is_trusted_subtitle_url(url: str) -> bool:
+        """Return True if the subtitle URL originates from a trusted YouTube/Google host."""
+        from urllib.parse import urlparse
+        parsed = urlparse(url)
+        trusted_domains = (
+            "youtube.com",
+            "googlevideo.com",
+            "video.google.com",
+        )
+        host = parsed.netloc.lower()
+        return any(host == d or host.endswith("." + d) for d in trusted_domains)
+
+    @staticmethod
+    def _parse_json3(data: dict) -> str:
+        """Parse YouTube's json3 subtitle format into plain text."""
+        text_parts: list[str] = []
+        for event in data.get("events", []):
+            for seg in event.get("segs", []):
+                fragment = seg.get("utf8", "")
+                if fragment and fragment != "\n":
+                    text_parts.append(fragment)
+        return " ".join(text_parts).strip()
+
+    @staticmethod
+    def _strip_subtitle_markup(raw: str) -> str:
+        """Remove subtitle markup tags and timing lines from VTT/TTML content."""
+        # Remove XML/HTML tags
+        text = re.sub(r"<[^>]+>", "", raw)
+        lines = []
+        for line in text.splitlines():
+            line = line.strip()
+            # Skip WebVTT headers, timing lines, and blank lines
+            if not line or line.startswith("WEBVTT") or "-->" in line:
+                continue
+            lines.append(line)
+        return " ".join(lines).strip()
+
