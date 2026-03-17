@@ -14,7 +14,7 @@ _cache = TranscriptCache()
 
 @router.post("/extract", response_model=ExtractResponse)
 @limiter.limit("10/minute")
-def extract_transcript(request: ExtractRequest, background_tasks: BackgroundTasks, req: Request):
+def extract_transcript(extract_request: ExtractRequest, request: Request, background_tasks: BackgroundTasks):
     """
     Extract the transcript from a YouTube video URL.
 
@@ -27,7 +27,7 @@ def extract_transcript(request: ExtractRequest, background_tasks: BackgroundTask
       3. Save to cache + DB in the background (non-blocking).
     """
     try:
-        url = request.url.strip()
+        url = extract_request.url.strip()
 
         if not _youtube_extractor.validate_url(url):
             raise HTTPException(status_code=400, detail="Unsupported or invalid URL.")
@@ -57,7 +57,7 @@ def extract_transcript(request: ExtractRequest, background_tasks: BackgroundTask
             video_id=video_id,
             transcript_text=transcript,
             word_count=word_count,
-            user_id=request.user_id,
+            user_id=extract_request.user_id,
         )
 
         return ExtractResponse(transcript=transcript, word_count=word_count)
