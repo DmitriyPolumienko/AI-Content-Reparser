@@ -7,7 +7,7 @@ import LoadingProgress from "./LoadingProgress";
 import TranscriptSelector from "@/components/TranscriptSelector";
 
 interface UrlInputProps {
-  onExtract: (url: string, transcript: string) => void;
+  onExtract: (url: string, transcript: string, language?: string) => void;
 }
 
 function isValidYouTubeUrl(url: string): boolean {
@@ -86,7 +86,7 @@ export default function UrlInput({ onExtract }: UrlInputProps) {
         throw new Error(detail);
       }
       const data = await res.json();
-      onExtract(url.trim(), data.transcript);
+      onExtract(url.trim(), data.transcript, selectedLanguage ?? undefined);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {

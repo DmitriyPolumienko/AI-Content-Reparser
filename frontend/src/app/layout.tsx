@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "@/styles/globals.css";
+import "flag-icons/css/flag-icons.min.css";
 import { ToastProvider } from "@/components/effects/Toast";
 
 export const metadata: Metadata = {
