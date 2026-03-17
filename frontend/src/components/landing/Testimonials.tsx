@@ -70,7 +70,7 @@ export default function Testimonials() {
           className="glass rounded-3xl p-8 md:p-12 mb-10 text-center relative overflow-hidden"
         >
           <div className="absolute top-4 left-6 text-7xl gradient-text opacity-50 font-serif leading-none select-none">
-            "
+            &ldquo;
           </div>
           <p className="text-xl md:text-2xl text-white/90 leading-relaxed max-w-3xl mx-auto font-medium mb-8 relative z-10">
             {featured.quote}
@@ -106,7 +106,7 @@ export default function Testimonials() {
                   </svg>
                 ))}
               </div>
-              <p className="text-slate-300 text-sm leading-relaxed flex-1">"{t.text}"</p>
+              <p className="text-slate-300 text-sm leading-relaxed flex-1">&ldquo;{t.text}&rdquo;</p>
               <div className="flex items-center gap-3 pt-2 border-t border-white/5">
                 <div
                   className={`w-9 h-9 rounded-full bg-gradient-to-br ${t.color} flex items-center justify-center text-white font-bold text-xs shrink-0`}
