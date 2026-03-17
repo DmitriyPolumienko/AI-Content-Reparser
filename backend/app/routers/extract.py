@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 
 from app.models.schemas import ExtractRequest, ExtractResponse
 from app.services.extractors.youtube import YouTubeExtractor
+from app.services import database
 
 router = APIRouter()
 
@@ -25,6 +26,17 @@ def extract_transcript(request: ExtractRequest):
             raise HTTPException(status_code=400, detail="Unsupported or invalid URL.")
 
         word_count = len(transcript.split())
+        video_id = _youtube_extractor.get_video_id(url)
+
+        # Persist transcript to Supabase (best-effort; never blocks the response)
+        database.save_transcript(
+            video_url=url,
+            video_id=video_id,
+            transcript_text=transcript,
+            word_count=word_count,
+            user_id=request.user_id,
+        )
+
         return ExtractResponse(transcript=transcript, word_count=word_count)
 
     except HTTPException:

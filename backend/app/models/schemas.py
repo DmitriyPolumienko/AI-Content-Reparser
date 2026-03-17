@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 class ExtractRequest(BaseModel):
     url: str
+    user_id: Optional[str] = None
 
 
 class ExtractResponse(BaseModel):

@@ -49,7 +49,16 @@ export default function UrlInput({ onExtract }: UrlInputProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: url.trim() }),
       });
-      if (!res.ok) throw new Error("Failed to extract transcript. Make sure the video has captions enabled.");
+      if (!res.ok) {
+        let detail = "Failed to extract transcript. Make sure the video has captions enabled.";
+        try {
+          const errData = await res.json();
+          if (errData?.detail) detail = errData.detail;
+        } catch {
+          // ignore JSON parse errors – use default message
+        }
+        throw new Error(detail);
+      }
       const data = await res.json();
       onExtract(url.trim(), data.transcript);
     } catch (err) {
