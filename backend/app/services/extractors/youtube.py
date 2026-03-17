@@ -424,8 +424,6 @@ class YouTubeExtractor(VideoExtractor):
         host = parsed.netloc.lower()
         return any(host == d or host.endswith("." + d) for d in trusted_domains)
 
-        raise ValueError("Could not download subtitle in any supported format")
-
     @staticmethod
     def _parse_json3(data: dict) -> str:
         """Parse YouTube's json3 subtitle format into plain text."""
