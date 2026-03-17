@@ -64,6 +64,41 @@ def _get_queue():
 
 
 # ---------------------------------------------------------------------------
+# Background job (module-level so RQ workers can import and execute it)
+# ---------------------------------------------------------------------------
+
+
+def _extract_and_cache(url: str, user_id: Optional[str]) -> str:
+    """
+    Background job: extract a YouTube transcript, save to cache and database.
+
+    This is a module-level function so that RQ workers can import and pickle it
+    correctly without re-creating a new function object on every enqueue call.
+    """
+    from app.services.extractors.youtube import YouTubeExtractor
+    from app.services.cache import TranscriptCache
+    from app.services import database
+
+    extractor = YouTubeExtractor()
+    transcript = extractor.extract_transcript(url)
+    video_id = extractor.get_video_id(url)
+
+    TranscriptCache().set(
+        video_id=video_id,
+        video_url=url,
+        transcript=transcript,
+    )
+    database.save_transcript(
+        video_url=url,
+        video_id=video_id,
+        transcript_text=transcript,
+        word_count=len(transcript.split()),
+        user_id=user_id,
+    )
+    return transcript
+
+
+# ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
@@ -85,30 +120,6 @@ def enqueue_transcript_extraction(
         return None
 
     try:
-        # Import here to avoid heavy deps at module load time
-        from app.services.extractors.youtube import YouTubeExtractor
-        from app.services.cache import TranscriptCache
-
-        def _extract_and_cache(url: str, uid: Optional[str]) -> str:
-            extractor = YouTubeExtractor()
-            transcript = extractor.extract_transcript(url)
-            video_id = extractor.get_video_id(url)
-            TranscriptCache().set(
-                video_id=video_id,
-                video_url=url,
-                transcript=transcript,
-            )
-            from app.services import database
-
-            database.save_transcript(
-                video_url=url,
-                video_id=video_id,
-                transcript_text=transcript,
-                word_count=len(transcript.split()),
-                user_id=uid,
-            )
-            return transcript
-
         job = queue.enqueue(_extract_and_cache, video_url, user_id)
         logger.info("Enqueued transcript extraction job %s for %s", job.id, video_url)
         return job.id

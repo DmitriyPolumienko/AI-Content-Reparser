@@ -14,7 +14,7 @@ _cache = TranscriptCache()
 
 @router.post("/extract", response_model=ExtractResponse)
 @limiter.limit("10/minute")
-def extract_transcript(request: ExtractRequest, background_tasks: BackgroundTasks, http_request: Request):
+def extract_transcript(request: ExtractRequest, background_tasks: BackgroundTasks, req: Request):
     """
     Extract the transcript from a YouTube video URL.
 
