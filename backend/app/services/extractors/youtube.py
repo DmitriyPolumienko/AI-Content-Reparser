@@ -5,7 +5,6 @@ import logging
 
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFound
-from youtube_transcript_api.proxies import GenericProxyConfig
 
 from app.services.extractors.base import VideoExtractor
 
@@ -83,16 +82,16 @@ class YouTubeExtractor(VideoExtractor):
 
         return proxies
 
-    def _get_proxy_config(self) -> GenericProxyConfig | None:
-        """Returns a GenericProxyConfig for the next proxy attempt."""
+    def _get_proxy_dict(self) -> dict | None:
+        """Returns proxy configuration as a dict for youtube-transcript-api static methods."""
         if self._rotating_proxy_configured():
             proxy_url = self._get_random_proxy()
-            return GenericProxyConfig(http_url=proxy_url, https_url=proxy_url)
+            return {"http": proxy_url, "https": proxy_url}
 
         if self._legacy_proxy_list:
             proxy_url = random.choice(self._legacy_proxy_list)
             logger.info("Using static proxy from list")
-            return GenericProxyConfig(http_url=proxy_url, https_url=proxy_url)
+            return {"http": proxy_url, "https": proxy_url}
 
         return None
 
@@ -124,9 +123,8 @@ class YouTubeExtractor(VideoExtractor):
 
         for attempt in range(max_attempts):
             try:
-                proxy_config = self._get_proxy_config()
-                ytt_api = YouTubeTranscriptApi(proxy_config=proxy_config)
-                transcript_list = ytt_api.list_transcripts(video_id)
+                proxies = self._get_proxy_dict()
+                transcript_list = YouTubeTranscriptApi.list_transcripts(video_id, proxies=proxies)
 
                 available = []
                 for t in transcript_list:
@@ -188,10 +186,9 @@ class YouTubeExtractor(VideoExtractor):
 
         for attempt in range(max_attempts):
             try:
-                # A new instance is created per attempt so each attempt can use a different proxy
-                proxy_config = self._get_proxy_config()
-                ytt_api = YouTubeTranscriptApi(proxy_config=proxy_config)
-                transcript_list = ytt_api.list_transcripts(video_id)
+                # A fresh proxy dict is obtained per attempt to allow proxy rotation
+                proxies = self._get_proxy_dict()
+                transcript_list = YouTubeTranscriptApi.list_transcripts(video_id, proxies=proxies)
 
                 lang_candidates = [language] if language else ["en", "ru"]
 
