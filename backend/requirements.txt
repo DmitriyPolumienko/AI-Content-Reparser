@@ -1,7 +1,7 @@
 fastapi
 uvicorn[standard]
 openai
-yt-dlp>=2026.02.21
+pytubefix>=6.0.0
 requests>=2.31.0
 pydantic
 pydantic-settings
