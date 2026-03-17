@@ -10,7 +10,7 @@ interface GenerationSettingsProps {
 
 const contentTypeOptions = [
   { value: "seo_article", label: "📄 SEO Article" },
-  { value: "linkedin", label: "💼 LinkedIn Post" },
+  { value: "linkedin_post", label: "💼 LinkedIn Post" },
   { value: "twitter_thread", label: "🐦 Twitter Thread" },
 ];
 

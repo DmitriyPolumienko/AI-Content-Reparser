@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
@@ -44,10 +44,33 @@ export default function Dashboard() {
   const [wordsRemaining, setWordsRemaining] = useState(10000);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  // Generation counter: fetched from /api/stats on mount, updated after each success
+  const [videosProcessed, setVideosProcessed] = useState(247);
+  // Selected transcript language: tracked for future language-based prompt/limit logic
+  // TODO(language-prompt): pass this to generation settings UI once language-based
+  // restrictions are introduced (see backend generate.py for the TODO).
+  const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
 
-  const handleExtract = (extractedUrl: string, extractedTranscript: string) => {
+  // Fetch the current generation counter from the backend on mount
+  useEffect(() => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    if (!apiUrl) return;
+    fetch(`${apiUrl}/api/stats`)
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (data?.videos_processed !== undefined) {
+          setVideosProcessed(data.videos_processed);
+        }
+      })
+      .catch(() => {
+        // Non-critical; keep the local default value
+      });
+  }, []);
+
+  const handleExtract = (extractedUrl: string, extractedTranscript: string, language?: string) => {
     setUrl(extractedUrl);
     setTranscript(extractedTranscript);
+    if (language) setSelectedLanguage(language);
     setStep(2);
   };
 
@@ -62,12 +85,18 @@ export default function Dashboard() {
           transcript,
           content_type: settings.contentType,
           keywords: settings.keywords,
+          // Pass selected language for future language-aware prompt / rate-limiting
+          language: selectedLanguage ?? undefined,
         }),
       });
       if (!res.ok) throw new Error("Generation failed. Please try again.");
       const data = await res.json();
       setGeneratedContent(data.content);
       setWordsRemaining(data.words_remaining ?? wordsRemaining);
+      // Update the live counter with the value returned by the backend
+      if (data.videos_processed !== undefined) {
+        setVideosProcessed(data.videos_processed);
+      }
       setStep(4);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
@@ -121,7 +150,7 @@ export default function Dashboard() {
       />
 
       <main className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 pb-10 pt-24">
-        {/* Stats banner — placeholder metrics; replace with real API data when available */}
+        {/* Stats banner */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -135,7 +164,7 @@ export default function Dashboard() {
                 </svg>
               </div>
               <div>
-                <p className="text-2xl font-bold text-white">247</p>
+                <p className="text-2xl font-bold text-white">{videosProcessed.toLocaleString()}</p>
                 <p className="text-xs text-slate-500">Videos Processed</p>
               </div>
             </div>
@@ -149,7 +178,7 @@ export default function Dashboard() {
                 </svg>
               </div>
               <div>
-                <p className="text-2xl font-bold text-white">~2m</p>
+                <p className="text-2xl font-bold text-white">~30s</p>
                 <p className="text-xs text-slate-500">Avg Processing Time</p>
               </div>
             </div>

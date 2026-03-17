@@ -16,45 +16,83 @@ interface TranscriptSelectorProps {
   onSelect: (language: string, preferManual: boolean) => void;
 }
 
-const LANGUAGE_FLAGS: Record<string, string> = {
-  en: "🇬🇧",
-  ar: "🇸🇦",
-  bn: "🇧🇩",
-  zh: "🇨🇳",
-  "zh-Hans": "🇨🇳",
-  "zh-Hant": "🇹🇼",
-  fr: "🇫🇷",
-  de: "🇩🇪",
-  hi: "🇮🇳",
-  id: "🇮🇩",
-  it: "🇮🇹",
-  ja: "🇯🇵",
-  ko: "🇰🇷",
-  pt: "🇵🇹",
-  ru: "🇷🇺",
-  es: "🇪🇸",
-  tr: "🇹🇷",
-  vi: "🇻🇳",
-  th: "🇹🇭",
-  pl: "🇵🇱",
-  nl: "🇳🇱",
-  sv: "🇸🇪",
-  uk: "🇺🇦",
-  ro: "🇷🇴",
-  el: "🇬🇷",
-  cs: "🇨🇿",
-  da: "🇩🇰",
-  fi: "🇫🇮",
-  hu: "🇭🇺",
-  no: "🇳🇴",
-  sk: "🇸🇰",
-  he: "🇮🇱",
-  fa: "🇮🇷",
+/**
+ * Maps a BCP-47 language code to an ISO 3166-1 alpha-2 country code
+ * so we can render the correct SVG flag via the `flag-icons` CSS library.
+ *
+ * Language codes do not always equal country codes (e.g. "en" → "gb"),
+ * so we maintain an explicit mapping here.
+ *
+ * All keys are stored lowercase; getCountryCode() normalises incoming codes
+ * with .toLowerCase() before lookup, so "zh-Hans" and "zh-hans" both match.
+ *
+ * TODO(language-prompt): this mapping will also be useful when restricting
+ * generation to certain languages in a future release.
+ */
+const LANG_TO_COUNTRY: Record<string, string> = {
+  en: "gb",
+  ar: "sa",
+  bn: "bd",
+  zh: "cn",
+  "zh-hans": "cn",
+  "zh-hant": "tw",
+  fr: "fr",
+  de: "de",
+  hi: "in",
+  id: "id",
+  it: "it",
+  ja: "jp",
+  ko: "kr",
+  pt: "pt",
+  ru: "ru",
+  es: "es",
+  tr: "tr",
+  vi: "vn",
+  th: "th",
+  pl: "pl",
+  nl: "nl",
+  sv: "se",
+  uk: "ua",
+  ro: "ro",
+  el: "gr",
+  cs: "cz",
+  da: "dk",
+  fi: "fi",
+  hu: "hu",
+  no: "no",
+  sk: "sk",
+  he: "il",
+  fa: "ir",
 };
 
-function getLanguageFlag(code: string): string {
-  const baseCode = code.split("-")[0];
-  return LANGUAGE_FLAGS[code] ?? LANGUAGE_FLAGS[baseCode] ?? "🌐";
+/**
+ * Resolve a language code to a `flag-icons` country code.
+ * Returns `null` when no flag is available (renders a globe text fallback).
+ */
+function getCountryCode(languageCode: string): string | null {
+  const key = languageCode.toLowerCase();
+  const baseKey = key.split("-")[0];
+  return LANG_TO_COUNTRY[key] ?? LANG_TO_COUNTRY[baseKey] ?? null;
+}
+
+/** Render an SVG flag using the `flag-icons` CSS library or a globe fallback. */
+function FlagIcon({ languageCode, alt }: { languageCode: string; alt: string }) {
+  const countryCode = getCountryCode(languageCode);
+  if (!countryCode) {
+    return (
+      <span className="text-base leading-none" aria-label={alt}>
+        🌐
+      </span>
+    );
+  }
+  return (
+    <span
+      className={`fi fi-${countryCode} text-base`}
+      style={{ width: "1.25rem", height: "0.9375rem", display: "inline-block" }}
+      role="img"
+      aria-label={alt}
+    />
+  );
 }
 
 export default function TranscriptSelector({ url, onSelect }: TranscriptSelectorProps) {
@@ -188,7 +226,7 @@ export default function TranscriptSelector({ url, onSelect }: TranscriptSelector
                       : "border-white/10 bg-white/5 text-slate-400 hover:border-white/20 hover:text-slate-300"
                   }`}
                 >
-                  <span className="text-base" aria-label={option.language_code}>{getLanguageFlag(option.language_code)}</span>
+                  <FlagIcon languageCode={option.language_code} alt={option.language_name} />
                   <span className="font-medium truncate">{option.language_name}</span>
                 </button>
               ))}

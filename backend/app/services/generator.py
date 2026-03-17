@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from openai import OpenAI
 
@@ -37,6 +37,7 @@ def generate_content(
     transcript: str,
     content_type: str,
     keywords: List[str],
+    language: Optional[str] = None,  # noqa: ARG001 – reserved for future language-aware prompts
 ) -> str:
     """
     Generate formatted content from a transcript using OpenAI GPT-4.1.
@@ -45,6 +46,10 @@ def generate_content(
         transcript: Raw transcript text.
         content_type: One of 'seo_article', 'linkedin_post', 'twitter_thread'.
         keywords: List of required keywords to include.
+        language: Source language code (e.g. 'en', 'ru').
+            Currently unused in the prompt.
+            TODO(language-prompt): use this to customise the system prompt or
+            output language once per-language restrictions are introduced.
 
     Returns:
         Generated content as a string.
