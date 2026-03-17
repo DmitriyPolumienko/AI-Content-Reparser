@@ -2,7 +2,6 @@ import re
 import os
 import random
 import logging
-from urllib.parse import urlparse
 
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFound
@@ -23,13 +22,46 @@ class YouTubeExtractor(VideoExtractor):
     MAX_PROXY_RETRIES = 3
 
     def __init__(self):
-        proxy_string = os.getenv("WEBSHARE_PROXY_LIST", "")
-        self.proxy_list = self._parse_proxies(proxy_string)
+        # Rotating proxy configuration (Webshare dynamic session IDs)
+        self.proxy_host = os.getenv("WEBSHARE_PROXY_HOST", "")
+        self.proxy_port = os.getenv("WEBSHARE_PROXY_PORT", "80")
+        self.proxy_username = os.getenv("WEBSHARE_PROXY_USERNAME", "")
+        self.proxy_password = os.getenv("WEBSHARE_PROXY_PASSWORD", "")
+        self.max_session_id = int(os.getenv("WEBSHARE_MAX_SESSION_ID", "215084"))
 
-        if self.proxy_list:
-            logger.info("Loaded %d proxies for YouTube requests", len(self.proxy_list))
+        # Fall back to legacy static proxy list if rotating proxy not configured
+        self._legacy_proxy_list: list[str] = []
+        if not self._rotating_proxy_configured():
+            proxy_string = os.getenv("WEBSHARE_PROXY_LIST", "")
+            self._legacy_proxy_list = self._parse_proxies(proxy_string)
+            if self._legacy_proxy_list:
+                logger.info("Loaded %d static proxies for YouTube requests", len(self._legacy_proxy_list))
+            else:
+                logger.warning("No proxies configured. YouTube may block requests from cloud IPs.")
         else:
-            logger.warning("No proxies configured. YouTube may block requests from cloud IPs.")
+            logger.info(
+                "Rotating proxy configured: %s:%s (up to %d sessions)",
+                self.proxy_host,
+                self.proxy_port,
+                self.max_session_id,
+            )
+
+    def _rotating_proxy_configured(self) -> bool:
+        """Return True if the Webshare rotating proxy environment variables are set."""
+        return bool(self.proxy_host and self.proxy_username and self.proxy_password)
+
+    def _get_random_proxy(self) -> str:
+        """
+        Generate a rotating proxy URL with a random Webshare session ID.
+
+        Webshare provides up to ``WEBSHARE_MAX_SESSION_ID`` unique sticky sessions
+        in the format ``<username>-<session_id>:<password>@<host>:<port>``.
+        """
+        session_id = random.randint(1, self.max_session_id)
+        username = f"{self.proxy_username}-{session_id}"
+        proxy_url = f"http://{username}:{self.proxy_password}@{self.proxy_host}:{self.proxy_port}"
+        logger.info("Using rotating proxy session ID: %d", session_id)
+        return proxy_url
 
     def _parse_proxies(self, proxy_string: str) -> list:
         """
@@ -52,19 +84,17 @@ class YouTubeExtractor(VideoExtractor):
         return proxies
 
     def _get_proxy_config(self) -> GenericProxyConfig | None:
-        """Returns a GenericProxyConfig built from a randomly selected proxy."""
-        if not self.proxy_list:
-            return None
+        """Returns a GenericProxyConfig for the next proxy attempt."""
+        if self._rotating_proxy_configured():
+            proxy_url = self._get_random_proxy()
+            return GenericProxyConfig(http_url=proxy_url, https_url=proxy_url)
 
-        proxy_url = random.choice(self.proxy_list)
-        # Log only the host:port portion, not the credentials
-        parsed = urlparse(proxy_url)
-        proxy_host = parsed.hostname or "unknown"
-        proxy_port = parsed.port
-        proxy_ip = f"{proxy_host}:{proxy_port}" if proxy_port else proxy_host
-        logger.info("Using proxy: %s", proxy_ip)
+        if self._legacy_proxy_list:
+            proxy_url = random.choice(self._legacy_proxy_list)
+            logger.info("Using static proxy from list")
+            return GenericProxyConfig(http_url=proxy_url, https_url=proxy_url)
 
-        return GenericProxyConfig(http_url=proxy_url, https_url=proxy_url)
+        return None
 
     def validate_url(self, url: str) -> bool:
         return bool(self._URL_PATTERN.search(url))
@@ -86,7 +116,8 @@ class YouTubeExtractor(VideoExtractor):
         """
         video_id = self._extract_video_id(url)
 
-        max_attempts = self.MAX_PROXY_RETRIES if self.proxy_list else 1
+        proxy_active = self._rotating_proxy_configured() or bool(self._legacy_proxy_list)
+        max_attempts = self.MAX_PROXY_RETRIES if proxy_active else 1
         last_exception: Exception | None = None
 
         for attempt in range(max_attempts):
@@ -110,7 +141,7 @@ class YouTubeExtractor(VideoExtractor):
                 logger.warning("Attempt %d failed: %s", attempt + 1, exc)
 
         error_msg = f"Failed to extract transcript after {max_attempts} attempt(s)."
-        if self.proxy_list:
+        if proxy_active:
             error_msg += " All proxies failed. YouTube may be blocking these IPs."
         else:
             error_msg += " No proxies configured. YouTube is likely blocking your server IP."
