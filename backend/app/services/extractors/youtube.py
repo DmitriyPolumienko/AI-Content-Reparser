@@ -2,104 +2,17 @@ import re
 import os
 import random
 import logging
-import tempfile
-from pathlib import Path
 
-import requests
-import yt_dlp
+from pytubefix import YouTube
+from pytubefix.exceptions import VideoUnavailable
 
 from app.services.extractors.base import VideoExtractor
 
 logger = logging.getLogger(__name__)
 
-# Mapping of common ISO 639-1 language codes to human-readable names.
-_LANG_NAMES: dict[str, str] = {
-    "af": "Afrikaans",
-    "ak": "Akan",
-    "sq": "Albanian",
-    "am": "Amharic",
-    "ar": "Arabic",
-    "hy": "Armenian",
-    "az": "Azerbaijani",
-    "eu": "Basque",
-    "be": "Belarusian",
-    "bem": "Bemba",
-    "bn": "Bengali",
-    "bs": "Bosnian",
-    "bg": "Bulgarian",
-    "ca": "Catalan",
-    "cs": "Czech",
-    "da": "Danish",
-    "nl": "Dutch",
-    "en": "English",
-    "eo": "Esperanto",
-    "et": "Estonian",
-    "fi": "Finnish",
-    "fr": "French",
-    "gl": "Galician",
-    "ka": "Georgian",
-    "de": "German",
-    "el": "Greek",
-    "gu": "Gujarati",
-    "he": "Hebrew",
-    "hi": "Hindi",
-    "hr": "Croatian",
-    "hu": "Hungarian",
-    "id": "Indonesian",
-    "is": "Icelandic",
-    "it": "Italian",
-    "ja": "Japanese",
-    "kn": "Kannada",
-    "kk": "Kazakh",
-    "km": "Khmer",
-    "ko": "Korean",
-    "lo": "Lao",
-    "lv": "Latvian",
-    "lt": "Lithuanian",
-    "mk": "Macedonian",
-    "ms": "Malay",
-    "ml": "Malayalam",
-    "mr": "Marathi",
-    "mn": "Mongolian",
-    "my": "Burmese",
-    "ne": "Nepali",
-    "no": "Norwegian",
-    "fa": "Persian",
-    "pl": "Polish",
-    "pt": "Portuguese",
-    "pa": "Punjabi",
-    "ro": "Romanian",
-    "ru": "Russian",
-    "sr": "Serbian",
-    "si": "Sinhala",
-    "sk": "Slovak",
-    "sl": "Slovenian",
-    "so": "Somali",
-    "es": "Spanish",
-    "sw": "Swahili",
-    "sv": "Swedish",
-    "tl": "Filipino",
-    "ta": "Tamil",
-    "te": "Telugu",
-    "th": "Thai",
-    "tr": "Turkish",
-    "uk": "Ukrainian",
-    "ur": "Urdu",
-    "uz": "Uzbek",
-    "vi": "Vietnamese",
-    "cy": "Welsh",
-    "xh": "Xhosa",
-    "yi": "Yiddish",
-    "yo": "Yoruba",
-    "zu": "Zulu",
-    "zh": "Chinese",
-    "zh-Hans": "Chinese (Simplified)",
-    "zh-Hant": "Chinese (Traditional)",
-}
-
 
 class YouTubeExtractor(VideoExtractor):
-    """Extracts transcripts from YouTube videos using yt-dlp with proxy support."""
+    """Extracts transcripts from YouTube videos using pytubefix with proxy support."""
 
     _URL_PATTERN = re.compile(
         r"(?:https?://)?(?:www\.)?(?:youtube\.com/watch\?v=|youtu\.be/)([A-Za-z0-9_-]{11})"
@@ -169,15 +82,16 @@ class YouTubeExtractor(VideoExtractor):
 
         return proxies
 
-    def _get_proxy_url(self) -> str | None:
-        """Return a proxy URL string suitable for yt-dlp, or None if no proxy is configured."""
+    def _build_proxies_dict(self) -> dict | None:
+        """Return a proxies dict for pytubefix, or None if no proxy is configured."""
         if self._rotating_proxy_configured():
-            return self._get_random_proxy()
+            proxy_url = self._get_random_proxy()
+            return {"http": proxy_url, "https": proxy_url}
 
         if self._legacy_proxy_list:
             proxy_url = random.choice(self._legacy_proxy_list)
             logger.info("Using static proxy from list")
-            return proxy_url
+            return {"http": proxy_url, "https": proxy_url}
 
         return None
 
@@ -194,78 +108,6 @@ class YouTubeExtractor(VideoExtractor):
         """Public method to extract the YouTube video ID from a URL."""
         return self._extract_video_id(url)
 
-    def _get_youtube_cookies_via_proxy(self, video_id: str, proxy_url: str) -> str:
-        """
-        Make a request to YouTube through proxy to get cookies.
-        Returns path to a temporary cookie file in Netscape format for yt-dlp.
-        """
-        url = f"https://www.youtube.com/watch?v={video_id}"
-
-        session = requests.Session()
-        session.proxies = {
-            "http": proxy_url,
-            "https": proxy_url,
-        }
-
-        try:
-            response = session.get(
-                url,
-                headers={
-                    "User-Agent": (
-                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                        "AppleWebKit/537.36 (KHTML, like Gecko) "
-                        "Chrome/120.0.0.0 Safari/537.36"
-                    ),
-                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                    "Accept-Language": "en-US,en;q=0.9",
-                },
-                timeout=15,
-            )
-            response.raise_for_status()
-        except Exception as exc:
-            raise RuntimeError(
-                f"Failed to fetch YouTube page via proxy to obtain cookies: {exc}"
-            ) from exc
-
-        # Write cookies in Netscape format so yt-dlp can consume them
-        cookie_file = tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False)
-        try:
-            cookie_file.write("# Netscape HTTP Cookie File\n")
-            cookie_file.write("# This is a generated file! Do not edit.\n\n")
-            for cookie in session.cookies:
-                cookie_file.write(
-                    f"{cookie.domain}\t"
-                    f"{'TRUE' if cookie.domain.startswith('.') else 'FALSE'}\t"
-                    f"{cookie.path}\t"
-                    f"{'TRUE' if cookie.secure else 'FALSE'}\t"
-                    f"{cookie.expires if cookie.expires else 0}\t"
-                    f"{cookie.name}\t"
-                    f"{cookie.value}\n"
-                )
-            cookie_file.close()
-        except Exception:
-            cookie_file.close()
-            Path(cookie_file.name).unlink(missing_ok=True)
-            raise
-        logger.info("Obtained YouTube cookies via proxy, saved to %s", cookie_file.name)
-        return cookie_file.name
-
-    def _build_ydl_opts(self, cookie_file_path: str | None = None) -> dict:
-        """Build yt-dlp options dict. Uses a cookie file instead of direct proxy."""
-        opts: dict = {
-            "skip_download": True,
-            "quiet": True,
-            "no_warnings": True,
-        }
-        if cookie_file_path:
-            opts["cookiefile"] = cookie_file_path
-        return opts
-
-    @staticmethod
-    def _get_language_name(lang_code: str) -> str:
-        """Map language codes to human-readable names."""
-        return _LANG_NAMES.get(lang_code, lang_code.upper())
-
     def list_transcripts(self, url: str) -> list:
         """
         List available transcripts for a YouTube video without downloading them.
@@ -280,59 +122,48 @@ class YouTubeExtractor(VideoExtractor):
         last_exception: Exception | None = None
 
         for attempt in range(max_attempts):
-            cookie_file_path = None
             try:
-                proxy_url = self._get_proxy_url()
+                proxies = self._build_proxies_dict()
 
-                if proxy_url:
-                    cookie_file_path = self._get_youtube_cookies_via_proxy(video_id, proxy_url)
+                yt = YouTube(url, proxies=proxies)
 
-                ydl_opts = self._build_ydl_opts(cookie_file_path)
+                captions = yt.captions
 
-                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                    info = ydl.extract_info(
-                        f"https://www.youtube.com/watch?v={video_id}",
-                        download=False,
-                    )
+                if not captions:
+                    raise ValueError("No transcripts available for this video")
 
-                subtitles: dict = info.get("subtitles", {}) or {}
-                automatic_captions: dict = info.get("automatic_captions", {}) or {}
+                manual_captions = []
+                auto_captions = []
 
-                available = []
+                for caption in captions:
+                    caption_info = {
+                        # Strip the 'a.' prefix so callers receive a plain language code (e.g. 'en')
+                        "language_code": self._bare_lang_code(caption.code),
+                        "language_name": caption.name,
+                        "is_generated": self._is_auto_generated(caption),
+                        "is_translatable": False,
+                    }
 
-                # Manual subtitles first
-                for lang_code, formats in subtitles.items():
-                    if formats:
-                        available.append({
-                            "language_code": lang_code,
-                            "language_name": self._get_language_name(lang_code),
-                            "is_generated": False,
-                            "is_translatable": False,
-                        })
+                    if caption_info["is_generated"]:
+                        caption_info["language_name"] = f"{caption.name} (auto-generated)"
+                        auto_captions.append(caption_info)
+                    else:
+                        manual_captions.append(caption_info)
 
-                # Auto-generated subtitles second (skip languages already present as manual)
-                for lang_code, formats in automatic_captions.items():
-                    if formats and lang_code not in subtitles:
-                        available.append({
-                            "language_code": lang_code,
-                            "language_name": f"{self._get_language_name(lang_code)} (auto-generated)",
-                            "is_generated": True,
-                            "is_translatable": False,
-                        })
+                available = manual_captions + auto_captions
 
                 logger.info("Listed %d transcripts for %s", len(available), video_id)
                 return available
 
+            except VideoUnavailable:
+                raise ValueError("Video is unavailable or private")
+
+            except ValueError:
+                raise
+
             except Exception as exc:
                 last_exception = exc
                 logger.warning("List attempt %d failed: %s", attempt + 1, exc)
-
-            finally:
-                if cookie_file_path and Path(cookie_file_path).exists():
-                    try:
-                        Path(cookie_file_path).unlink()
-                    except Exception as cleanup_exc:
-                        logger.warning("Failed to delete temp cookie file: %s", cleanup_exc)
 
         error_msg = f"Failed to list transcripts after {max_attempts} attempt(s)."
         if proxy_active:
@@ -365,31 +196,50 @@ class YouTubeExtractor(VideoExtractor):
         last_exception: Exception | None = None
 
         for attempt in range(max_attempts):
-            cookie_file_path = None
             try:
-                proxy_url = self._get_proxy_url()
+                proxies = self._build_proxies_dict()
 
-                if proxy_url:
-                    cookie_file_path = self._get_youtube_cookies_via_proxy(video_id, proxy_url)
+                yt = YouTube(url, proxies=proxies)
 
-                ydl_opts = self._build_ydl_opts(cookie_file_path)
+                captions = yt.captions
 
-                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                    info = ydl.extract_info(
-                        f"https://www.youtube.com/watch?v={video_id}",
-                        download=False,
-                    )
-
-                subtitles: dict = info.get("subtitles", {}) or {}
-                automatic_captions: dict = info.get("automatic_captions", {}) or {}
+                if not captions:
+                    raise ValueError("No transcripts available for this video")
 
                 lang_candidates = [language] if language else ["en", "ru"]
 
-                text = self._fetch_best_transcript(
-                    subtitles, automatic_captions, lang_candidates, prefer_manual, proxy_url
-                )
+                manual_captions = [c for c in captions if not self._is_auto_generated(c)]
+                auto_captions = [c for c in captions if self._is_auto_generated(c)]
+
+                caption_to_use = None
+
+                for lang in lang_candidates:
+                    if prefer_manual:
+                        caption_to_use = self._find_caption_by_code(manual_captions, lang)
+                        if caption_to_use:
+                            break
+                        caption_to_use = self._find_caption_by_code(auto_captions, lang)
+                        if caption_to_use:
+                            break
+                    else:
+                        caption_to_use = self._find_caption_by_code(auto_captions, lang)
+                        if caption_to_use:
+                            break
+                        caption_to_use = self._find_caption_by_code(manual_captions, lang)
+                        if caption_to_use:
+                            break
+
+                if not caption_to_use:
+                    raise ValueError(f"No transcript found for language(s): {', '.join(lang_candidates)}")
+
+                srt_captions = caption_to_use.generate_srt_captions()
+                text = self._parse_srt_to_text(srt_captions)
+
                 logger.info("Successfully extracted transcript for %s (attempt %d)", video_id, attempt + 1)
                 return text
+
+            except VideoUnavailable:
+                raise ValueError("Video is unavailable or private")
 
             except ValueError:
                 raise
@@ -397,13 +247,6 @@ class YouTubeExtractor(VideoExtractor):
             except Exception as exc:
                 last_exception = exc
                 logger.warning("Attempt %d failed: %s", attempt + 1, exc)
-
-            finally:
-                if cookie_file_path and Path(cookie_file_path).exists():
-                    try:
-                        Path(cookie_file_path).unlink()
-                    except Exception as cleanup_exc:
-                        logger.warning("Failed to delete temp cookie file: %s", cleanup_exc)
 
         error_msg = f"Failed to extract transcript after {max_attempts} attempt(s)."
         if proxy_active:
@@ -413,130 +256,59 @@ class YouTubeExtractor(VideoExtractor):
 
         raise RuntimeError(f"{error_msg} Last error: {last_exception}") from last_exception
 
-    def _fetch_best_transcript(
-        self,
-        subtitles: dict,
-        automatic_captions: dict,
-        lang_candidates: list[str],
-        prefer_manual: bool,
-        proxy_url: str | None = None,
-    ) -> str:
+    @staticmethod
+    def _is_auto_generated(caption) -> bool:
         """
-        Select and download the best matching subtitle track.
+        Return True if the caption track is auto-generated.
 
-        Applies prefer_manual preference, then falls back to the opposite type.
-        Raises ValueError if no matching transcript can be found.
+        pytubefix exposes the YouTube vssId field as caption.code. Auto-generated
+        tracks use a vssId of the form 'a.<lang>' (e.g. 'a.en'), while manual
+        tracks use plain codes like 'en' or 'en-US'.
         """
-        def _try_sources(primary: dict, fallback: dict) -> str | None:
-            for lang in lang_candidates:
-                if lang in primary and primary[lang]:
-                    return self._download_subtitle(primary[lang], proxy_url)
-            for lang in lang_candidates:
-                if lang in fallback and fallback[lang]:
-                    return self._download_subtitle(fallback[lang], proxy_url)
-            return None
-
-        if prefer_manual:
-            result = _try_sources(subtitles, automatic_captions)
-        else:
-            result = _try_sources(automatic_captions, subtitles)
-
-        if result is None:
-            lang_str = ", ".join(lang_candidates)
-            raise ValueError(f"No transcript found for language(s): {lang_str}")
-
-        return result
-
-    # Allowed URL prefixes for subtitle downloads (guards against SSRF)
-    _ALLOWED_SUBTITLE_HOSTS = (
-        "https://www.youtube.com/",
-        "https://youtube.com/",
-        "https://video.google.com/",
-        "https://redirector.googlevideo.com/",
-        "https://r1---sn-",   # YouTube CDN shard pattern
-    )
-
-    def _download_subtitle(self, formats: list, proxy_url: str | None = None) -> str:
-        """Download and parse subtitle content from the first supported format URL."""
-        # Prefer json3/srv3 (JSON-based YouTube subtitle formats) for easy parsing.
-        preferred_exts = ("json3", "srv3", "vtt", "ttml")
-
-        def _sort_key(fmt: dict) -> int:
-            ext = fmt.get("ext", "")
-            try:
-                return preferred_exts.index(ext)
-            except ValueError:
-                return len(preferred_exts)
-
-        for fmt in sorted(formats, key=_sort_key):
-            sub_url = fmt.get("url")
-            if not sub_url:
-                continue
-            # Guard against SSRF by restricting to known YouTube/Google CDN hosts
-            if not self._is_trusted_subtitle_url(sub_url):
-                logger.warning("Skipping subtitle URL from untrusted host: %s", sub_url)
-                continue
-            ext = fmt.get("ext", "")
-            try:
-                session = requests.Session()
-                if proxy_url:
-                    session.proxies = {"http": proxy_url, "https": proxy_url}
-                response = session.get(sub_url, timeout=15)
-                response.raise_for_status()
-                if ext in ("json3", "srv3"):
-                    try:
-                        return self._parse_json3(response.json())
-                    except (ValueError, KeyError) as parse_exc:
-                        raise ValueError(f"Failed to parse subtitle JSON format: {parse_exc}") from parse_exc
-                # Fall back to stripping tags for VTT/TTML
-                return self._strip_subtitle_markup(response.text)
-            except ValueError:
-                raise
-            except Exception as exc:
-                logger.warning(
-                    "Failed to download subtitle format %s%s: %s",
-                    ext,
-                    " (via proxy)" if proxy_url else "",
-                    exc,
-                )
-
-        raise ValueError("Could not download subtitle in any supported format")
+        return caption.code.startswith("a.")
 
     @staticmethod
-    def _is_trusted_subtitle_url(url: str) -> bool:
-        """Return True if the subtitle URL originates from a trusted YouTube/Google host."""
-        from urllib.parse import urlparse
-        parsed = urlparse(url)
-        trusted_domains = (
-            "youtube.com",
-            "googlevideo.com",
-            "video.google.com",
-        )
-        host = parsed.netloc.lower()
-        return any(host == d or host.endswith("." + d) for d in trusted_domains)
+    def _bare_lang_code(code: str) -> str:
+        """Strip the 'a.' auto-generated prefix from a caption code, returning the plain language code."""
+        return code[2:] if code.startswith("a.") else code
 
     @staticmethod
-    def _parse_json3(data: dict) -> str:
-        """Parse YouTube's json3 subtitle format into plain text."""
-        text_parts: list[str] = []
-        for event in data.get("events", []):
-            for seg in event.get("segs", []):
-                fragment = seg.get("utf8", "")
-                if fragment and fragment != "\n":
-                    text_parts.append(fragment)
-        return " ".join(text_parts).strip()
+    def _find_caption_by_code(caption_list: list, lang_code: str):
+        """Find caption by language code in a list of captions, ignoring the 'a.' auto-generated prefix."""
+        for caption in caption_list:
+            bare = caption.code[2:] if caption.code.startswith("a.") else caption.code
+            if bare == lang_code or bare.startswith(f"{lang_code}-"):
+                return caption
+        return None
 
     @staticmethod
-    def _strip_subtitle_markup(raw: str) -> str:
-        """Remove subtitle markup tags and timing lines from VTT/TTML content."""
-        # Remove XML/HTML tags
-        text = re.sub(r"<[^>]+>", "", raw)
-        lines = []
-        for line in text.splitlines():
+    def _parse_srt_to_text(srt_content: str) -> str:
+        """
+        Parse SRT subtitle format and extract only the text.
+
+        SRT format:
+        1
+        00:00:00,000 --> 00:00:02,000
+        Hello world
+
+        2
+        00:00:02,000 --> 00:00:04,000
+        Second line
+        """
+        lines = srt_content.split("\n")
+        text_parts = []
+
+        for line in lines:
             line = line.strip()
-            # Skip WebVTT headers, timing lines, and blank lines
-            if not line or line.startswith("WEBVTT") or "-->" in line:
+            # Skip empty lines, sequence numbers, and timestamps
+            if not line or line.isdigit() or "-->" in line:
                 continue
-            lines.append(line)
-        return " ".join(lines).strip()
+
+            # Remove any HTML tags that might be present
+            line = re.sub(r"<[^>]+>", "", line)
+
+            if line:
+                text_parts.append(line)
+
+        return " ".join(text_parts)
 
