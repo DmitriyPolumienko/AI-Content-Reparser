@@ -2,6 +2,8 @@ import re
 import os
 import random
 import logging
+import tempfile
+from pathlib import Path
 
 import requests
 import yt_dlp
@@ -192,15 +194,71 @@ class YouTubeExtractor(VideoExtractor):
         """Public method to extract the YouTube video ID from a URL."""
         return self._extract_video_id(url)
 
-    def _build_ydl_opts(self, proxy_url: str | None) -> dict:
-        """Build yt-dlp options dict."""
+    def _get_youtube_cookies_via_proxy(self, video_id: str, proxy_url: str) -> str:
+        """
+        Make a request to YouTube through proxy to get cookies.
+        Returns path to a temporary cookie file in Netscape format for yt-dlp.
+        """
+        url = f"https://www.youtube.com/watch?v={video_id}"
+
+        session = requests.Session()
+        session.proxies = {
+            "http": proxy_url,
+            "https": proxy_url,
+        }
+
+        try:
+            response = session.get(
+                url,
+                headers={
+                    "User-Agent": (
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                        "AppleWebKit/537.36 (KHTML, like Gecko) "
+                        "Chrome/120.0.0.0 Safari/537.36"
+                    ),
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                    "Accept-Language": "en-US,en;q=0.9",
+                },
+                timeout=15,
+            )
+            response.raise_for_status()
+        except Exception as exc:
+            raise RuntimeError(
+                f"Failed to fetch YouTube page via proxy to obtain cookies: {exc}"
+            ) from exc
+
+        # Write cookies in Netscape format so yt-dlp can consume them
+        cookie_file = tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False)
+        try:
+            cookie_file.write("# Netscape HTTP Cookie File\n")
+            cookie_file.write("# This is a generated file! Do not edit.\n\n")
+            for cookie in session.cookies:
+                cookie_file.write(
+                    f"{cookie.domain}\t"
+                    f"{'TRUE' if cookie.domain.startswith('.') else 'FALSE'}\t"
+                    f"{cookie.path}\t"
+                    f"{'TRUE' if cookie.secure else 'FALSE'}\t"
+                    f"{cookie.expires if cookie.expires else 0}\t"
+                    f"{cookie.name}\t"
+                    f"{cookie.value}\n"
+                )
+            cookie_file.close()
+        except Exception:
+            cookie_file.close()
+            Path(cookie_file.name).unlink(missing_ok=True)
+            raise
+        logger.info("Obtained YouTube cookies via proxy, saved to %s", cookie_file.name)
+        return cookie_file.name
+
+    def _build_ydl_opts(self, cookie_file_path: str | None = None) -> dict:
+        """Build yt-dlp options dict. Uses a cookie file instead of direct proxy."""
         opts: dict = {
             "skip_download": True,
             "quiet": True,
             "no_warnings": True,
         }
-        if proxy_url:
-            opts["proxy"] = proxy_url
+        if cookie_file_path:
+            opts["cookiefile"] = cookie_file_path
         return opts
 
     @staticmethod
@@ -222,9 +280,14 @@ class YouTubeExtractor(VideoExtractor):
         last_exception: Exception | None = None
 
         for attempt in range(max_attempts):
+            cookie_file_path = None
             try:
                 proxy_url = self._get_proxy_url()
-                ydl_opts = self._build_ydl_opts(proxy_url)
+
+                if proxy_url:
+                    cookie_file_path = self._get_youtube_cookies_via_proxy(video_id, proxy_url)
+
+                ydl_opts = self._build_ydl_opts(cookie_file_path)
 
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                     info = ydl.extract_info(
@@ -264,6 +327,13 @@ class YouTubeExtractor(VideoExtractor):
                 last_exception = exc
                 logger.warning("List attempt %d failed: %s", attempt + 1, exc)
 
+            finally:
+                if cookie_file_path and Path(cookie_file_path).exists():
+                    try:
+                        Path(cookie_file_path).unlink()
+                    except Exception as cleanup_exc:
+                        logger.warning("Failed to delete temp cookie file: %s", cleanup_exc)
+
         error_msg = f"Failed to list transcripts after {max_attempts} attempt(s)."
         if proxy_active:
             error_msg += " All proxies failed. YouTube may be blocking these IPs."
@@ -295,9 +365,14 @@ class YouTubeExtractor(VideoExtractor):
         last_exception: Exception | None = None
 
         for attempt in range(max_attempts):
+            cookie_file_path = None
             try:
                 proxy_url = self._get_proxy_url()
-                ydl_opts = self._build_ydl_opts(proxy_url)
+
+                if proxy_url:
+                    cookie_file_path = self._get_youtube_cookies_via_proxy(video_id, proxy_url)
+
+                ydl_opts = self._build_ydl_opts(cookie_file_path)
 
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                     info = ydl.extract_info(
@@ -311,7 +386,7 @@ class YouTubeExtractor(VideoExtractor):
                 lang_candidates = [language] if language else ["en", "ru"]
 
                 text = self._fetch_best_transcript(
-                    subtitles, automatic_captions, lang_candidates, prefer_manual
+                    subtitles, automatic_captions, lang_candidates, prefer_manual, proxy_url
                 )
                 logger.info("Successfully extracted transcript for %s (attempt %d)", video_id, attempt + 1)
                 return text
@@ -322,6 +397,13 @@ class YouTubeExtractor(VideoExtractor):
             except Exception as exc:
                 last_exception = exc
                 logger.warning("Attempt %d failed: %s", attempt + 1, exc)
+
+            finally:
+                if cookie_file_path and Path(cookie_file_path).exists():
+                    try:
+                        Path(cookie_file_path).unlink()
+                    except Exception as cleanup_exc:
+                        logger.warning("Failed to delete temp cookie file: %s", cleanup_exc)
 
         error_msg = f"Failed to extract transcript after {max_attempts} attempt(s)."
         if proxy_active:
@@ -337,6 +419,7 @@ class YouTubeExtractor(VideoExtractor):
         automatic_captions: dict,
         lang_candidates: list[str],
         prefer_manual: bool,
+        proxy_url: str | None = None,
     ) -> str:
         """
         Select and download the best matching subtitle track.
@@ -347,10 +430,10 @@ class YouTubeExtractor(VideoExtractor):
         def _try_sources(primary: dict, fallback: dict) -> str | None:
             for lang in lang_candidates:
                 if lang in primary and primary[lang]:
-                    return self._download_subtitle(primary[lang])
+                    return self._download_subtitle(primary[lang], proxy_url)
             for lang in lang_candidates:
                 if lang in fallback and fallback[lang]:
-                    return self._download_subtitle(fallback[lang])
+                    return self._download_subtitle(fallback[lang], proxy_url)
             return None
 
         if prefer_manual:
@@ -373,7 +456,7 @@ class YouTubeExtractor(VideoExtractor):
         "https://r1---sn-",   # YouTube CDN shard pattern
     )
 
-    def _download_subtitle(self, formats: list) -> str:
+    def _download_subtitle(self, formats: list, proxy_url: str | None = None) -> str:
         """Download and parse subtitle content from the first supported format URL."""
         # Prefer json3/srv3 (JSON-based YouTube subtitle formats) for easy parsing.
         preferred_exts = ("json3", "srv3", "vtt", "ttml")
@@ -395,7 +478,10 @@ class YouTubeExtractor(VideoExtractor):
                 continue
             ext = fmt.get("ext", "")
             try:
-                response = requests.get(sub_url, timeout=15)
+                session = requests.Session()
+                if proxy_url:
+                    session.proxies = {"http": proxy_url, "https": proxy_url}
+                response = session.get(sub_url, timeout=15)
                 response.raise_for_status()
                 if ext in ("json3", "srv3"):
                     try:
@@ -407,7 +493,12 @@ class YouTubeExtractor(VideoExtractor):
             except ValueError:
                 raise
             except Exception as exc:
-                logger.warning("Failed to download subtitle format %s: %s", ext, exc)
+                logger.warning(
+                    "Failed to download subtitle format %s%s: %s",
+                    ext,
+                    " (via proxy)" if proxy_url else "",
+                    exc,
+                )
 
         raise ValueError("Could not download subtitle in any supported format")
 
