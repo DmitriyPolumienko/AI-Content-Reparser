@@ -27,6 +27,10 @@ class GenerateRequest(BaseModel):
 
 class GenerateResponse(BaseModel):
     content: str
+    # Symbol-based accounting (input_chars + output_chars)
+    chars_used: int
+    chars_remaining: int
+    # Backward-compatible aliases (equal to chars_used / chars_remaining)
     words_used: int
     words_remaining: int
     videos_processed: int  # global generation counter returned for UI display
