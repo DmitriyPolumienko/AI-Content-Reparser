@@ -17,12 +17,12 @@ export default function InfiniteMarquee({
 
   return (
     <div
-      className={`overflow-hidden ${className}`}
+      className={`overflow-x-hidden ${className}`}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
       <div
-        className="flex w-max"
+        className="flex w-max py-2"
         style={{
           animation: `marquee ${speed}s linear infinite`,
           animationPlayState: paused ? "paused" : "running",

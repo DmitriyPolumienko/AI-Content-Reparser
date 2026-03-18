@@ -88,7 +88,7 @@ const platforms = [
 
 export default function TrustedBy() {
   return (
-    <section className="py-16 px-4 relative overflow-hidden">
+    <section className="py-16 px-4 relative overflow-x-hidden">
       {/* Gradient divider top */}
       <div
         className="absolute top-0 left-0 right-0 h-px"

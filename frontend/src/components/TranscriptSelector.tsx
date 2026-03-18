@@ -176,7 +176,7 @@ export default function TranscriptSelector({ url, onSelect }: TranscriptSelector
               {[1, 2, 3].map((i) => (
                 <div
                   key={i}
-                  className="h-10 bg-white/5 border border-white/10 rounded-xl animate-pulse"
+                  className="h-10 bg-white/8 border border-white/15 rounded-xl animate-pulse"
                   style={{ animationDelay: `${i * 100}ms` }}
                 />
               ))}

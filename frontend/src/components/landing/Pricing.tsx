@@ -4,6 +4,49 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ShimmerButton from "@/components/effects/ShimmerButton";
 
+/** Small "i" icon that shows a tooltip on hover/focus. */
+function FeatureTooltip({ text }: { text: string }) {
+  const [show, setShow] = useState(false);
+  return (
+    <span className="relative inline-flex">
+      <button
+        type="button"
+        onMouseEnter={() => setShow(true)}
+        onMouseLeave={() => setShow(false)}
+        onFocus={() => setShow(true)}
+        onBlur={() => setShow(false)}
+        className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-white/10 text-slate-400 hover:text-slate-200 hover:bg-white/20 cursor-help text-xs leading-none transition-colors flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+        aria-label={text}
+      >
+        i
+      </button>
+      <AnimatePresence>
+        {show && (
+          <motion.div
+            initial={{ opacity: 0, y: 4, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 4, scale: 0.95 }}
+            transition={{ duration: 0.15 }}
+            role="tooltip"
+            className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 w-48 bg-[#0a0a1a]/95 border border-white/15 rounded-xl p-2.5 text-xs text-slate-200 shadow-xl pointer-events-none whitespace-normal"
+          >
+            {text}
+            {/* Caret */}
+            <span
+              className="absolute top-full left-1/2 -translate-x-1/2 block w-0 h-0"
+              style={{
+                borderLeft: "5px solid transparent",
+                borderRight: "5px solid transparent",
+                borderTop: "5px solid rgba(255,255,255,0.15)",
+              }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </span>
+  );
+}
+
 interface PlanFeature {
   text: string;
   tooltip?: string;
@@ -37,7 +80,7 @@ const plans: Plan[] = [
   {
     name: "Pro",
     monthlyPrice: 11.99,
-    annualPrice: 7.79,
+    annualPrice: 8.99,
     description: "For creators serious about scaling their content.",
     features: [
       { text: "90,000 symbols / day", tooltip: "≈ 60 min video (average)" },
@@ -53,7 +96,7 @@ const plans: Plan[] = [
   {
     name: "Enterprise",
     monthlyPrice: 27.99,
-    annualPrice: 18.19,
+    annualPrice: 20.99,
     description: "Unlimited scale for teams and agencies.",
     features: [
       { text: "360,000 symbols / day", tooltip: "≈ 4 hours video (average)" },
@@ -119,7 +162,7 @@ export default function Pricing() {
             <span className={`text-sm font-medium transition-colors ${annual ? "text-white" : "text-slate-500"}`}>
               Annual
               <span className="ml-2 px-2 py-0.5 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs rounded-full">
-                Save 35%
+                Save 25%
               </span>
             </span>
           </div>
@@ -191,15 +234,7 @@ export default function Pricing() {
                     <span className="mt-0.5 text-emerald-400 font-bold shrink-0">✓</span>
                     <span className="flex items-center gap-1.5">
                       {f.text}
-                      {f.tooltip && (
-                        <span
-                          title={f.tooltip}
-                          aria-label={f.tooltip}
-                          className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-white/10 text-slate-400 hover:text-slate-200 hover:bg-white/20 cursor-help text-xs leading-none transition-colors flex-shrink-0"
-                        >
-                          i
-                        </span>
-                      )}
+                      {f.tooltip && <FeatureTooltip text={f.tooltip} />}
                     </span>
                   </li>
                 ))}
