@@ -113,6 +113,60 @@ def save_generated_content(
     return None
 
 
+def get_videos_processed() -> Optional[int]:
+    """
+    Return the current ``videos_processed`` value from the ``app_stats`` table.
+
+    Returns the integer value on success, or ``None`` if Supabase is not
+    configured or the query fails (callers should fall back to the in-memory
+    counter in that case).
+    """
+    client = _get_client()
+    if client is None:
+        return None
+
+    try:
+        response = (
+            client.table("app_stats")
+            .select("value")
+            .eq("key", "videos_processed")
+            .single()
+            .execute()
+        )
+        if response.data:
+            return int(response.data["value"])
+    except Exception as exc:
+        logger.error("Failed to read videos_processed from Supabase: %s", exc)
+
+    return None
+
+
+def increment_videos_processed() -> Optional[int]:
+    """
+    Atomically increment ``videos_processed`` in the ``app_stats`` table and
+    return the new value.
+
+    Uses the ``increment_stat`` PostgreSQL function (defined in migration 003)
+    which issues ``UPDATE … SET value = value + 1 RETURNING value``.
+
+    Returns the new integer value on success, or ``None`` if Supabase is not
+    configured or the operation fails (callers should fall back to the
+    in-memory counter in that case).
+    """
+    client = _get_client()
+    if client is None:
+        return None
+
+    try:
+        response = client.rpc("increment_stat", {"p_key": "videos_processed"}).execute()
+        if response.data is not None:
+            return int(response.data)
+    except Exception as exc:
+        logger.error("Failed to increment videos_processed in Supabase: %s", exc)
+
+    return None
+
+
 def update_user_words_remaining(*, user_id: str, words_used: int) -> bool:
     """
     Atomically decrement the ``words_remaining`` counter for a user using a

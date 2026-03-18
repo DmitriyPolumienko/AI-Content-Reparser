@@ -6,6 +6,7 @@ from fastapi import APIRouter, Request
 
 from app.logging_config import request_id_var
 from app.routers.generate import get_generation_count
+from app.services.database import get_videos_processed
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -21,13 +22,16 @@ def get_stats(request: Request):
       "videos_processed": 248
     }
 
-    The ``videos_processed`` counter is an in-process counter that starts at 247
-    (the initial seed value) and increments on every successful POST /api/generate.
-    It resets on server restart.  Migrate to a Supabase ``app_stats`` table when
-    persistence across deployments is required.
+    Reads ``videos_processed`` from the Supabase ``app_stats`` table so the
+    value persists across server restarts and is consistent across multiple
+    workers.  Falls back to the in-process counter when Supabase is not
+    configured or the query fails.
     """
     req_id = getattr(request.state, "request_id", request_id_var.get())
-    count = get_generation_count()
+
+    db_count = get_videos_processed()
+    count = db_count if db_count is not None else get_generation_count()
+
     logger.info(
         "stats fetched",
         extra={"request_id": req_id, "method": "GET", "path": "/api/stats", "status_code": 200},

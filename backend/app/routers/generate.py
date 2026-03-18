@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException, Request
 from app.logging_config import request_id_var
 from app.models.schemas import GenerateRequest, GenerateResponse
 from app.services import balance as balance_service
+from app.services.database import increment_videos_processed as _db_increment_videos_processed
 from app.services.generator import generate_content
 
 router = APIRouter()
@@ -128,8 +129,19 @@ def generate(request: GenerateRequest, http_request: Request):
         chars_used = input_chars + output_chars
         chars_remaining = balance_service.deduct_balance(request.user_id, chars_used)
 
-        # Increment counter only after a successful generation
-        videos_processed = _increment_generation_count()
+        # Increment counter only after a successful generation.
+        # Try Supabase first for persistence across restarts/workers;
+        # fall back to the in-memory counter if Supabase is unavailable.
+        db_count = _db_increment_videos_processed()
+        if db_count is not None:
+            videos_processed = db_count
+            # Keep the in-memory counter in sync so /api/stats stays consistent
+            # if a subsequent DB read fails.
+            global _generation_count
+            with _generation_count_lock:
+                _generation_count = db_count
+        else:
+            videos_processed = _increment_generation_count()
 
         logger.info(
             "generate completed",
