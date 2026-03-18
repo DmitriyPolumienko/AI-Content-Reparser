@@ -22,11 +22,11 @@ const dashboardNavLinks = [
 
 interface NavbarProps {
   variant?: "landing" | "dashboard";
-  wordsRemaining?: number;
+  charsRemaining?: number;
   onStartOver?: () => void;
 }
 
-export default function Navbar({ variant = "landing", wordsRemaining, onStartOver }: NavbarProps) {
+export default function Navbar({ variant = "landing", charsRemaining, onStartOver }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const router = useRouter();
@@ -76,9 +76,9 @@ export default function Navbar({ variant = "landing", wordsRemaining, onStartOve
           {isDashboard ? (
             <>
               <div className="px-3 py-1.5 glass rounded-full text-xs text-slate-400">
-                Words remaining:{" "}
+                Symbols remaining:{" "}
                 <span className="text-emerald-400 font-semibold">
-                  {(wordsRemaining ?? 0).toLocaleString()}
+                  {(charsRemaining ?? 0).toLocaleString()}
                 </span>
               </div>
               <button
@@ -148,9 +148,9 @@ export default function Navbar({ variant = "landing", wordsRemaining, onStartOve
               {isDashboard ? (
                 <>
                   <div className="px-3 py-1.5 glass rounded-full text-xs text-slate-400 text-center">
-                    Words remaining:{" "}
+                    Symbols remaining:{" "}
                     <span className="text-emerald-400 font-semibold">
-                      {(wordsRemaining ?? 0).toLocaleString()}
+                      {(charsRemaining ?? 0).toLocaleString()}
                     </span>
                   </div>
                   <button

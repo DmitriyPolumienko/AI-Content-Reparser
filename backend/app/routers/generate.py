@@ -51,7 +51,8 @@ def generate(request: GenerateRequest, http_request: Request):
       "user_id": "mock-user-123",
       "language": "en"   // optional – reserved for future language-based limits
     }
-    Returns: { "content": "...", "words_used": 500, "words_remaining": 9500,
+    Returns: { "content": "...", "chars_used": 500, "chars_remaining": 17500,
+               "words_used": 500, "words_remaining": 17500,
                "videos_processed": 248 }
 
     TODO(language-limits): once per-language rate limiting is introduced,
@@ -64,19 +65,42 @@ def generate(request: GenerateRequest, http_request: Request):
     try:
         logger.info("generate started", extra={**_log_extra, "content_type": request.content_type})
 
+        # ── Enforce per-request input limit ───────────────────────────────
+        input_chars = len(request.transcript)
+        plan_limits = balance_service.get_plan_limits(request.user_id)
+        if input_chars > plan_limits.max_input_chars:
+            logger.warning(
+                "generate rejected: input exceeds plan limit",
+                extra={
+                    **_log_extra,
+                    "status_code": 413,
+                    "input_chars": input_chars,
+                    "max_input_chars": plan_limits.max_input_chars,
+                    "duration_ms": _ms(t0),
+                },
+            )
+            raise HTTPException(
+                status_code=413,
+                detail=(
+                    f"Input too large: {input_chars:,} symbols. "
+                    f"Your plan allows up to {plan_limits.max_input_chars:,} input symbols per request."
+                ),
+            )
+
+        # ── Check available symbol balance ────────────────────────────────
         current_balance = balance_service.get_balance(request.user_id)
         if current_balance <= 0:
             logger.warning(
-                "generate rejected: insufficient balance",
+                "generate rejected: insufficient symbol balance",
                 extra={**_log_extra, "status_code": 402, "duration_ms": _ms(t0)},
             )
             raise HTTPException(
                 status_code=402,
-                detail="Insufficient word balance. Please top up your account.",
+                detail="Symbol limit reached. Please upgrade your plan.",
             )
 
         # ── Generate content first; deduct balance only on success ────────
-        # This ensures the mock balance (and any future real balance) is never
+        # This ensures the balance (and any future real balance) is never
         # deducted when OpenAI fails mid-request.
         content = generate_content(
             transcript=request.transcript,
@@ -85,8 +109,24 @@ def generate(request: GenerateRequest, http_request: Request):
             language=request.language,
         )
 
-        words_used = len(content.split())
-        words_remaining = balance_service.deduct_balance(request.user_id, words_used)
+        output_chars = len(content)
+
+        # Log a warning when LLM output exceeds the plan's per-request cap.
+        # We don't reject here because we cannot control LLM output length
+        # precisely; the cap is enforced via max_completion_tokens in the
+        # generator.  The full cost is still charged to the user's balance.
+        if output_chars > plan_limits.max_output_chars:
+            logger.warning(
+                "generate: output exceeded plan max_output_chars",
+                extra={
+                    **_log_extra,
+                    "output_chars": output_chars,
+                    "max_output_chars": plan_limits.max_output_chars,
+                },
+            )
+
+        chars_used = input_chars + output_chars
+        chars_remaining = balance_service.deduct_balance(request.user_id, chars_used)
 
         # Increment counter only after a successful generation
         videos_processed = _increment_generation_count()
@@ -97,15 +137,20 @@ def generate(request: GenerateRequest, http_request: Request):
                 **_log_extra,
                 "status_code": 200,
                 "duration_ms": _ms(t0),
-                "words_used": words_used,
+                "input_chars": input_chars,
+                "output_chars": output_chars,
+                "chars_used": chars_used,
                 "videos_processed": videos_processed,
             },
         )
 
         return GenerateResponse(
             content=content,
-            words_used=words_used,
-            words_remaining=words_remaining,
+            chars_used=chars_used,
+            chars_remaining=chars_remaining,
+            # Backward-compatible aliases
+            words_used=chars_used,
+            words_remaining=chars_remaining,
             videos_processed=videos_processed,
         )
 

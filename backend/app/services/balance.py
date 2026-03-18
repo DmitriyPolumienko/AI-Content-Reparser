@@ -1,24 +1,118 @@
-from typing import Dict, Any
+"""
+Symbol-based usage accounting for user plans.
 
+Usage is tracked as *characters* (input_chars + output_chars) rather than
+words.  Each user record stores how many symbols were consumed in the current
+period together with the UTC start time of that period.  On every call the
+period is checked and reset automatically when a new period begins.
+
+Plan periods:
+    free        → weekly  (resets Monday 00:00 UTC)
+    pro         → daily   (resets 00:00 UTC)
+    enterprise  → daily   (resets 00:00 UTC)
+
+Overage:
+    free        → not allowed; hard limit at period_limit
+    pro/ent     → allowed up to 5 × period_limit; billed at end of month
+"""
+
+import datetime
+from typing import Any, Dict
+
+from app.services.plan_config import PLAN_LIMITS, PlanLimits, get_period_start_utc
+
+# ---------------------------------------------------------------------------
+# Mock user store
+# Each entry maps user_id → { plan, chars_used_in_period, period_start }
+# ---------------------------------------------------------------------------
 MOCK_USERS: Dict[str, Dict[str, Any]] = {
-    "mock-user-123": {"token_words_left": 10000},
+    "mock-user-123": {
+        "plan": "free",
+        "chars_used_in_period": 0,
+        "period_start": None,  # initialised on first access
+    },
 }
 
 
+# ---------------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------------
+
+def _get_plan(user: Dict[str, Any]) -> PlanLimits:
+    plan_key = user.get("plan", "free")
+    plan = PLAN_LIMITS.get(plan_key)
+    if plan is None:
+        plan = PLAN_LIMITS["free"]
+    return plan
+
+
+def _effective_limit(plan: PlanLimits) -> int:
+    """Total symbols allowed including overage cap."""
+    if plan.overage_allowed and plan.overage_cap_multiplier:
+        return plan.period_limit * (1 + plan.overage_cap_multiplier)
+    return plan.period_limit
+
+
+def _ensure_period(user: Dict[str, Any]) -> None:
+    """Reset chars_used_in_period when a new period has started (UTC)."""
+    plan = _get_plan(user)
+    period_start = get_period_start_utc(plan.period)
+    stored_start = user.get("period_start")
+    if stored_start is None or stored_start < period_start:
+        user["chars_used_in_period"] = 0
+        user["period_start"] = period_start
+
+
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
+
+def get_plan_limits(user_id: str) -> PlanLimits:
+    """Return the PlanLimits for the given user."""
+    user = MOCK_USERS.get(user_id)
+    if user is None:
+        raise ValueError(f"User '{user_id}' not found.")
+    return _get_plan(user)
+
+
 def get_balance(user_id: str) -> int:
-    """Return the number of words remaining for the given user."""
+    """Return the number of symbols remaining for the user in the current period."""
     user = MOCK_USERS.get(user_id)
     if user is None:
         raise ValueError(f"User '{user_id}' not found.")
-    return user["token_words_left"]
+    _ensure_period(user)
+    plan = _get_plan(user)
+    used = user["chars_used_in_period"]
+    return max(0, _effective_limit(plan) - used)
 
 
-def deduct_balance(user_id: str, words_used: int) -> int:
-    """Deduct words from a user's balance and return the new balance."""
+def deduct_balance(user_id: str, chars_used: int) -> int:
+    """
+    Deduct *chars_used* symbols from the user's period balance.
+
+    Returns the updated chars_remaining value.
+
+    Raises ValueError when:
+    - the user is not found
+    - Free plan has exhausted its period limit (no overage)
+    - Pro/Enterprise has exhausted the overage cap
+    """
     user = MOCK_USERS.get(user_id)
     if user is None:
         raise ValueError(f"User '{user_id}' not found.")
-    if user["token_words_left"] < words_used:
-        raise ValueError("Insufficient word balance.")
-    user["token_words_left"] -= words_used
-    return user["token_words_left"]
+    _ensure_period(user)
+    plan = _get_plan(user)
+    used = user["chars_used_in_period"]
+    limit = _effective_limit(plan)
+
+    if not plan.overage_allowed and used >= plan.period_limit:
+        raise ValueError(
+            "Symbol limit reached for this period. Please upgrade your plan."
+        )
+    if used + chars_used > limit:
+        raise ValueError(
+            "Symbol limit (including overage cap) reached for this period."
+        )
+
+    user["chars_used_in_period"] = used + chars_used
+    return max(0, limit - user["chars_used_in_period"])

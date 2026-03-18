@@ -40,7 +40,7 @@ export default function Dashboard() {
   const [transcript, setTranscript] = useState("");
   const [settings, setSettings] = useState<Settings>({ contentType: "seo_article", keywords: [] });
   const [generatedContent, setGeneratedContent] = useState("");
-  const [wordsRemaining, setWordsRemaining] = useState(10000);
+  const [charsRemaining, setCharsRemaining] = useState(18000);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [errorCode, setErrorCode] = useState<502 | 504 | null>(null);
@@ -99,7 +99,8 @@ export default function Dashboard() {
       }
       const data = await res.json();
       setGeneratedContent(data.content);
-      setWordsRemaining(data.words_remaining ?? wordsRemaining);
+      // Prefer chars_remaining (new); fall back to words_remaining for backward compat
+      setCharsRemaining(data.chars_remaining ?? data.words_remaining ?? charsRemaining);
       // Update the live counter with the value returned by the backend
       if (data.videos_processed !== undefined) {
         setVideosProcessed(data.videos_processed);
@@ -127,7 +128,7 @@ export default function Dashboard() {
       <GradientOrbs />
 
       {/* Use the same Navbar as the landing page for a consistent header */}
-      <Navbar variant="dashboard" wordsRemaining={wordsRemaining} onStartOver={handleStartOver} />
+      <Navbar variant="dashboard" charsRemaining={charsRemaining} onStartOver={handleStartOver} />
 
       <div className="pt-16">
         <Breadcrumbs

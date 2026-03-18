@@ -4,49 +4,64 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ShimmerButton from "@/components/effects/ShimmerButton";
 
-const plans = [
+interface PlanFeature {
+  text: string;
+  tooltip?: string;
+}
+
+interface Plan {
+  name: string;
+  monthlyPrice: number;
+  annualPrice: number;
+  description: string;
+  features: PlanFeature[];
+  cta: string;
+  highlight: boolean;
+}
+
+const plans: Plan[] = [
   {
     name: "Free",
     monthlyPrice: 0,
     annualPrice: 0,
     description: "Perfect for trying out AI content generation.",
     features: [
-      "5,000 words / month",
-      "3 content types",
-      "YouTube support",
-      "Basic SEO optimization",
+      { text: "18,000 symbols / week", tooltip: "≈ 10–15 min video (average)" },
+      { text: "Max request: 3k input / 3k output" },
+      { text: "YouTube support" },
+      { text: "Basic SEO optimization" },
     ],
     cta: "Start Free",
     highlight: false,
   },
   {
     name: "Pro",
-    monthlyPrice: 29,
-    annualPrice: 19,
+    monthlyPrice: 11.99,
+    annualPrice: 7.79,
     description: "For creators serious about scaling their content.",
     features: [
-      "150,000 words / month",
-      "All content types",
-      "All platforms (YouTube, Twitch, TikTok)",
-      "Advanced SEO + keyword optimization",
-      "Priority AI processing",
-      "Generation history & re-generate",
+      { text: "90,000 symbols / day", tooltip: "≈ 60 min video (average)" },
+      { text: "Max request: 50k input / 20k output" },
+      { text: "All content types" },
+      { text: "All platforms (YouTube, Twitch, TikTok)" },
+      { text: "Advanced SEO + keyword optimization" },
+      { text: "Priority AI processing" },
     ],
     cta: "Start Pro Trial",
     highlight: true,
   },
   {
     name: "Enterprise",
-    monthlyPrice: 99,
-    annualPrice: 69,
+    monthlyPrice: 27.99,
+    annualPrice: 18.19,
     description: "Unlimited scale for teams and agencies.",
     features: [
-      "Unlimited words",
-      "API access",
-      "Team collaboration",
-      "White-label exports",
-      "Dedicated account manager",
-      "Custom integrations",
+      { text: "360,000 symbols / day", tooltip: "≈ 4 hours video (average)" },
+      { text: "Max request: 150k input / 30k output" },
+      { text: "All content types" },
+      { text: "API access" },
+      { text: "Team collaboration" },
+      { text: "White-label exports" },
     ],
     cta: "Contact Sales",
     highlight: false,
@@ -165,16 +180,27 @@ export default function Pricing() {
                   </motion.div>
                 </AnimatePresence>
                 {annual && plan.monthlyPrice > 0 && (
-                  <p className="text-xs text-emerald-400 mt-1">Billed annually (${plan.annualPrice * 12}/yr)</p>
+                  <p className="text-xs text-emerald-400 mt-1">Billed annually (${(plan.annualPrice * 12).toFixed(2)}/yr)</p>
                 )}
               </div>
 
               {/* Features */}
               <ul className="flex flex-col gap-2.5 flex-1">
                 {plan.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-sm text-slate-300">
+                  <li key={f.text} className="flex items-start gap-2 text-sm text-slate-300">
                     <span className="mt-0.5 text-emerald-400 font-bold shrink-0">✓</span>
-                    {f}
+                    <span className="flex items-center gap-1.5">
+                      {f.text}
+                      {f.tooltip && (
+                        <span
+                          title={f.tooltip}
+                          aria-label={f.tooltip}
+                          className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-white/10 text-slate-400 hover:text-slate-200 hover:bg-white/20 cursor-help text-xs leading-none transition-colors flex-shrink-0"
+                        >
+                          i
+                        </span>
+                      )}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -191,7 +217,7 @@ export default function Pricing() {
           ))}
         </div>
 
-        {/* Extra tokens */}
+        {/* Overage / additional credits note */}
         <motion.p
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
@@ -199,11 +225,11 @@ export default function Pricing() {
           transition={{ duration: 0.5, delay: 0.4 }}
           className="text-center text-slate-500 text-sm mt-8"
         >
-          Need more words?{" "}
+          Need more symbols?{" "}
           <a href="#" className="text-emerald-400 hover:text-emerald-300 underline transition-colors">
-            Buy additional word-packs
+            Purchase additional credits
           </a>{" "}
-          starting from $5 for 25,000 words.
+          — overage is billed at end of month together with your subscription.
         </motion.p>
       </div>
     </section>
