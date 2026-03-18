@@ -1,14 +1,18 @@
 """Stats endpoint – exposes global application metrics."""
 
-from fastapi import APIRouter
+import logging
 
+from fastapi import APIRouter, Request
+
+from app.logging_config import request_id_var
 from app.routers.generate import get_generation_count
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.get("/stats")
-def get_stats():
+def get_stats(request: Request):
     """
     Return global application statistics.
 
@@ -22,4 +26,10 @@ def get_stats():
     It resets on server restart.  Migrate to a Supabase ``app_stats`` table when
     persistence across deployments is required.
     """
-    return {"videos_processed": get_generation_count()}
+    req_id = getattr(request.state, "request_id", request_id_var.get())
+    count = get_generation_count()
+    logger.info(
+        "stats fetched",
+        extra={"request_id": req_id, "method": "GET", "path": "/api/stats", "status_code": 200},
+    )
+    return {"videos_processed": count}
