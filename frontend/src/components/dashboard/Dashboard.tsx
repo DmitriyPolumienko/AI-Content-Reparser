@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Link from "next/link";
-import Image from "next/image";
 import UrlInput from "./UrlInput";
 import SubtitleEditor from "./SubtitleEditor";
 import GenerationSettings from "./GenerationSettings";
@@ -14,6 +12,7 @@ import GradientOrbs from "@/components/effects/GradientOrbs";
 import ShimmerButton from "@/components/effects/ShimmerButton";
 import Navbar from "@/components/landing/Navbar";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
+import ErrorState from "@/components/ui/ErrorState";
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -44,6 +43,7 @@ export default function Dashboard() {
   const [wordsRemaining, setWordsRemaining] = useState(10000);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [errorCode, setErrorCode] = useState<502 | 504 | null>(null);
   // Generation counter: fetched from /api/stats on mount, updated after each success
   const [videosProcessed, setVideosProcessed] = useState(247);
   // Selected transcript language: tracked for future language-based prompt/limit logic
@@ -77,6 +77,7 @@ export default function Dashboard() {
   const handleGenerate = async () => {
     setLoading(true);
     setError("");
+    setErrorCode(null);
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/generate`, {
         method: "POST",
@@ -89,7 +90,13 @@ export default function Dashboard() {
           language: selectedLanguage ?? undefined,
         }),
       });
-      if (!res.ok) throw new Error("Generation failed. Please try again.");
+      if (!res.ok) {
+        if (res.status === 502 || res.status === 504) {
+          setErrorCode(res.status);
+          return;
+        }
+        throw new Error("Generation failed. Please try again.");
+      }
       const data = await res.json();
       setGeneratedContent(data.content);
       setWordsRemaining(data.words_remaining ?? wordsRemaining);
@@ -112,44 +119,23 @@ export default function Dashboard() {
     setSettings({ contentType: "seo_article", keywords: [] });
     setGeneratedContent("");
     setError("");
+    setErrorCode(null);
   };
 
   return (
     <div className="min-h-screen bg-[#030014] relative overflow-hidden">
       <GradientOrbs />
 
-      {/* Navbar */}
-      <header className="relative z-10 border-b border-white/5 bg-black/30 backdrop-blur-xl sticky top-0">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 group">
-            <Image src="/logo-icon.png" alt="V2Post" width={36} height={36} />
-            <span className="font-bold text-white font-display hidden sm:block">
-              V2<span className="gradient-text">Post</span>
-            </span>
-          </Link>
-          <div className="flex items-center gap-3">
-            <div className="px-3 py-1.5 glass rounded-full text-xs text-slate-400">
-              Words remaining:{" "}
-              <span className="text-emerald-400 font-semibold">
-                {wordsRemaining.toLocaleString()}
-              </span>
-            </div>
-            <button
-              onClick={handleStartOver}
-              className="text-xs text-slate-500 hover:text-emerald-400 transition-colors"
-            >
-              ↺ Start Over
-            </button>
-          </div>
-        </div>
-      </header>
+      {/* Use the same Navbar as the landing page for a consistent header */}
+      <Navbar variant="dashboard" wordsRemaining={wordsRemaining} onStartOver={handleStartOver} />
 
-      <Breadcrumbs
-        items={[{ label: "Home", href: "/" }, { label: "Dashboard" }]}
-        className="max-w-5xl mx-auto px-4 sm:px-6 py-3"
-      />
+      <div className="pt-16">
+        <Breadcrumbs
+          items={[{ label: "Home", href: "/" }, { label: "Dashboard" }]}
+          className="max-w-5xl mx-auto px-4 sm:px-6 py-3"
+        />
 
-      <main className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 pb-10 pt-24">
+        <main className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 pb-10 pt-2">
         {/* Stats banner */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
@@ -274,7 +260,7 @@ export default function Dashboard() {
         </div>
 
         {/* Step content */}
-        <div className="glass-card p-6 sm:p-8 min-h-[400px] relative overflow-hidden">
+        <div className="glass-card p-6 sm:p-8 min-h-[300px] relative">
           <AnimatePresence mode="wait">
             <motion.div
               key={step}
@@ -312,41 +298,53 @@ export default function Dashboard() {
 
               {step === 3 && (
                 <div className="space-y-6">
-                  <GenerationSettings onSettingsChange={setSettings} />
+                  {errorCode ? (
+                    <ErrorState
+                      statusCode={errorCode}
+                      onRetry={() => {
+                        setErrorCode(null);
+                        handleGenerate();
+                      }}
+                    />
+                  ) : (
+                    <>
+                      <GenerationSettings onSettingsChange={setSettings} />
 
-                  {error && (
-                    <motion.p
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3"
-                    >
-                      ⚠️ {error}
-                    </motion.p>
-                  )}
+                      {error && (
+                        <motion.p
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3"
+                        >
+                          ⚠️ {error}
+                        </motion.p>
+                      )}
 
-                  {loading && (
-                    <div className="mt-6">
-                      <LoadingProgress
-                        message="🪄 Generating your content with GPT-4.1..."
-                        warningMessage="🪄 Generating your content... Please don't close this tab."
-                      />
-                      <div className="mt-4">
-                        <SkeletonLoader />
+                      {loading && (
+                        <div className="mt-6">
+                          <LoadingProgress
+                            message="🪄 Generating your content with GPT-4.1..."
+                            warningMessage="Generating your content... Please don't close this tab."
+                          />
+                          <div className="mt-4">
+                            <SkeletonLoader />
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex justify-between pt-2">
+                        <button
+                          onClick={() => setStep(2)}
+                          className="text-sm text-slate-500 hover:text-white transition-colors"
+                        >
+                          ← Back
+                        </button>
+                        <ShimmerButton size="md" onClick={handleGenerate} disabled={loading}>
+                          {loading ? "Generating..." : "Generate Content →"}
+                        </ShimmerButton>
                       </div>
-                    </div>
+                    </>
                   )}
-
-                  <div className="flex justify-between pt-2">
-                    <button
-                      onClick={() => setStep(2)}
-                      className="text-sm text-slate-500 hover:text-white transition-colors"
-                    >
-                      ← Back
-                    </button>
-                    <ShimmerButton size="md" onClick={handleGenerate} disabled={loading}>
-                      {loading ? "Generating..." : "Generate Content →"}
-                    </ShimmerButton>
-                  </div>
                 </div>
               )}
 
@@ -421,12 +419,34 @@ export default function Dashboard() {
                       <p className="text-xs text-slate-500 mt-1">Brief notes about charts or on-screen demos make the generated article much richer</p>
                     </div>
                   </div>
+                  <div className="flex gap-3">
+                    <span>🏷️</span>
+                    <div>
+                      <p className="text-sm text-slate-300 font-medium">Mark your key points</p>
+                      <p className="text-xs text-slate-500 mt-1">Highlight or label the most important facts — the AI will turn them into headings and strong copy</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <span>🌐</span>
+                    <div>
+                      <p className="text-sm text-slate-300 font-medium">Keep it in one language</p>
+                      <p className="text-xs text-slate-500 mt-1">Mixed-language transcripts can confuse the AI — edit to a single language before generating</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <span>📏</span>
+                    <div>
+                      <p className="text-sm text-slate-300 font-medium">Ideal length: 500–3,000 words</p>
+                      <p className="text-xs text-slate-500 mt-1">Shorter transcripts may produce thin content; longer ones give the AI more material to work with</p>
+                    </div>
+                  </div>
                 </>
               )}
             </div>
           </motion.div>
         )}
       </main>
+      </div>
     </div>
   );
 }

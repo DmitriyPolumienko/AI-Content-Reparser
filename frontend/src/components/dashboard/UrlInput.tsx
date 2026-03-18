@@ -76,6 +76,12 @@ export default function UrlInput({ onExtract }: UrlInputProps) {
         }),
       });
       if (!res.ok) {
+        if (res.status === 504) {
+          throw new Error("⏱️ Request timed out reaching YouTube. Please try again.");
+        }
+        if (res.status === 502) {
+          throw new Error("⚡ YouTube service is temporarily unreachable. Please try again in a moment.");
+        }
         let detail = "Failed to extract transcript. Make sure the video has captions enabled.";
         try {
           const errData = await res.json();
@@ -101,7 +107,7 @@ export default function UrlInput({ onExtract }: UrlInputProps) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="space-y-6"
+      className="space-y-4"
     >
       <div>
         <div className="flex items-center justify-between mb-2">
@@ -124,11 +130,11 @@ export default function UrlInput({ onExtract }: UrlInputProps) {
             <AnimatePresence>
               {showTooltip && (
                 <motion.div
-                  initial={{ opacity: 0, y: 4, scale: 0.95 }}
+                  initial={{ opacity: 0, y: -4, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 4, scale: 0.95 }}
+                  exit={{ opacity: 0, y: -4, scale: 0.95 }}
                   transition={{ duration: 0.15 }}
-                  className="absolute right-0 bottom-6 z-50 w-64 bg-black/90 border border-white/10 rounded-xl p-3 text-xs text-slate-300 shadow-xl"
+                  className="absolute right-0 top-full mt-2 z-50 w-64 bg-black/90 border border-white/10 rounded-xl p-3 text-xs text-slate-300 shadow-xl"
                 >
                   <p className="font-semibold text-white mb-1">Supported formats:</p>
                   <ul className="space-y-1 text-slate-400 font-mono text-xs">
@@ -219,20 +225,19 @@ export default function UrlInput({ onExtract }: UrlInputProps) {
 
       {/* Helper text */}
       {!loading && (
-        <div className="bg-emerald-500/5 border border-emerald-500/15 rounded-xl p-4">
-          <p className="text-xs text-slate-400 leading-relaxed">
-            <span className="text-emerald-400 font-medium">How it works:</span> Paste a YouTube URL above, click{" "}
-            <span className="text-emerald-400 font-medium">Analyze Video</span> to see available transcripts, then select
-            your preferred language and click{" "}
-            <span className="text-emerald-400 font-medium">Extract Transcript</span>.
+        <div className="space-y-2">
+          <div className="bg-emerald-500/5 border border-emerald-500/15 rounded-xl p-4">
+            <p className="text-xs text-slate-400 leading-relaxed">
+              <span className="text-emerald-400 font-medium">How it works:</span> Paste a YouTube URL above, click{" "}
+              <span className="text-emerald-400 font-medium">Analyze Video</span> to see available transcripts, then select
+              your preferred language and click{" "}
+              <span className="text-emerald-400 font-medium">Extract Transcript</span>.
+            </p>
+          </div>
+          <p className="text-slate-600 text-xs px-1">
+            Supports YouTube videos with auto-generated or manually added captions.
           </p>
         </div>
-      )}
-
-      {!loading && (
-        <p className="text-slate-600 text-xs">
-          Supports YouTube videos with auto-generated or manually added captions.
-        </p>
       )}
     </motion.div>
   );

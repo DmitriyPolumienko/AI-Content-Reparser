@@ -148,7 +148,7 @@ export default function TranscriptSelector({ url, onSelect }: TranscriptSelector
 
   return (
     <div className="space-y-4">
-      <ShimmerButton onClick={fetchOptions} disabled={!url.trim()} size="md">
+      <ShimmerButton onClick={fetchOptions} disabled={!url.trim() || loading} size="md">
         {loading ? (
           <>
             <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
