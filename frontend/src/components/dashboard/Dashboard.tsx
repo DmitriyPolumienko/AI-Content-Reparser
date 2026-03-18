@@ -411,7 +411,7 @@ export default function Dashboard() {
                     <span>✂️</span>
                     <div>
                       <p className="text-sm text-slate-300 font-medium">Trim filler words for cleaner output</p>
-                      <p className="text-xs text-slate-500 mt-1">Removing "um", "uh", and off-topic tangents helps the AI focus on what matters</p>
+                      <p className="text-xs text-slate-500 mt-1">Removing &quot;um&quot;, &quot;uh&quot;, and off-topic tangents helps the AI focus on what matters</p>
                     </div>
                   </div>
                   <div className="flex gap-3">
