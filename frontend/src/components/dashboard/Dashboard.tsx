@@ -120,10 +120,10 @@ export default function Dashboard() {
 
       {/* Navbar */}
       <header className="relative z-10 border-b border-white/5 bg-black/30 backdrop-blur-xl sticky top-0">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 group">
-            <Image src="/logo-icon.png" alt="V2Post" width={28} height={28} />
-            <span className="font-bold text-white text-sm font-display">
+            <Image src="/logo-icon.png" alt="V2Post" width={36} height={36} />
+            <span className="font-bold text-white font-display hidden sm:block">
               V2<span className="gradient-text">Post</span>
             </span>
           </Link>
@@ -164,7 +164,15 @@ export default function Dashboard() {
                 </svg>
               </div>
               <div>
-                <p className="text-2xl font-bold text-white">{videosProcessed.toLocaleString()}</p>
+                <motion.p
+                  key={videosProcessed}
+                  initial={{ scale: 1.15, color: "#34D399" }}
+                  animate={{ scale: 1, color: "#ffffff" }}
+                  transition={{ duration: 0.5, ease: "easeOut" }}
+                  className="text-2xl font-bold"
+                >
+                  {videosProcessed.toLocaleString()}
+                </motion.p>
                 <p className="text-xs text-slate-500">Videos Processed</p>
               </div>
             </div>
@@ -395,6 +403,26 @@ export default function Dashboard() {
                   <p className="text-xs text-slate-500 mt-1">Clear speech = better auto-generated captions</p>
                 </div>
               </div>
+
+              {/* Additional tips shown on the Edit Transcript step */}
+              {step === 2 && (
+                <>
+                  <div className="flex gap-3">
+                    <span>✂️</span>
+                    <div>
+                      <p className="text-sm text-slate-300 font-medium">Trim filler words for cleaner output</p>
+                      <p className="text-xs text-slate-500 mt-1">Removing "um", "uh", and off-topic tangents helps the AI focus on what matters</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <span>🎯</span>
+                    <div>
+                      <p className="text-sm text-slate-300 font-medium">Add context for visuals or demos</p>
+                      <p className="text-xs text-slate-500 mt-1">Brief notes about charts or on-screen demos make the generated article much richer</p>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </motion.div>
         )}

@@ -213,7 +213,7 @@ export default function UrlInput({ onExtract }: UrlInputProps) {
       {loading && (
         <LoadingProgress
           message="Extracting transcript from YouTube..."
-          warningMessage="⚠️ Don't close this tab! Your progress won't be saved and tokens may be lost."
+          warningMessage="Don't close this tab! Your progress won't be saved and tokens may be lost."
         />
       )}
 

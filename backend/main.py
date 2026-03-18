@@ -1,13 +1,19 @@
 import os
+import uuid
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi import _rate_limit_exceeded_handler
 
 from app.limiter import limiter
+from app.logging_config import setup_logging, request_id_var
 from app.routers import extract, generate, transcripts, stats
+
+# Initialise JSON structured logging as early as possible
+setup_logging()
 
 app = FastAPI(
     title="V2Post API",
@@ -15,11 +21,31 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# ---------------------------------------------------------------------------
+# Request-ID middleware
+# ---------------------------------------------------------------------------
+# Reads X-Request-ID from incoming headers (or generates a UUID v4 if absent),
+# stores it in a ContextVar so all log lines within the request carry the same
+# correlation ID, and echoes the value back in the response header.
+# ---------------------------------------------------------------------------
+
+class RequestIdMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+        request_id_var.set(request_id)
+        request.state.request_id = request_id
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = request_id
+        return response
+
 # Attach limiter to app state so slowapi middleware can discover it
 app.state.limiter = limiter
 
 # Register the default 429 handler
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# RequestIdMiddleware must run before SlowAPI so request_id is set for all logs
+app.add_middleware(RequestIdMiddleware)
 
 # SlowAPI middleware must be added before CORS so it runs on every request
 app.add_middleware(SlowAPIMiddleware)
