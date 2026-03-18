@@ -97,8 +97,10 @@ def get_period_start_utc(period: str) -> datetime.datetime:
 
     - "weekly"  → Monday 00:00:00 UTC of the current ISO week
     - "daily"   → 00:00:00 UTC of the current calendar day
+
+    The returned datetime is timezone-aware (UTC).
     """
-    now = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+    now = datetime.datetime.now(datetime.timezone.utc)
     if period == "weekly":
         return now - datetime.timedelta(
             days=now.weekday(),

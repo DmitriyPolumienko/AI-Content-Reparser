@@ -148,7 +148,10 @@ def generate(request: GenerateRequest, http_request: Request):
             content=content,
             chars_used=chars_used,
             chars_remaining=chars_remaining,
-            # Backward-compatible aliases
+            # Backward-compatible aliases: these fields previously represented
+            # word counts, but now carry character counts.  Kept so that any
+            # existing client that reads `words_remaining` continues to receive
+            # a valid (character-based) quota value without breaking.
             words_used=chars_used,
             words_remaining=chars_remaining,
             videos_processed=videos_processed,
