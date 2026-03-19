@@ -146,29 +146,30 @@ The last tweet in the array is always the final summary + CTA tweet.
 # ---------------------------------------------------------------------------
 # Video Recap system prompt (strict JSON output)
 # ---------------------------------------------------------------------------
-VIDEO_RECAP_SYSTEM = """You are an expert content summarizer. Transform the provided transcript into an engaging video recap and return it as a single JSON object.
+VIDEO_RECAP_SYSTEM = """You are an expert content summarizer. Transform the provided transcript into a comprehensive, well-structured video recap and return it as a single JSON object.
 
 STRICT VIDEO RECAP RULES (must follow exactly):
-- LANGUAGE: Write ALL content — title, summary, takeaways, quotes, recommendations — in the SAME language as the input transcript. Do NOT use English if the transcript is in another language.
-- Title: 50–80 characters. Clearly conveys the video topic.
-- Summary: 2–4 sentences. The most essential takeaway from the video.
-- Key takeaways: exactly 3–7 bullet points. Each under 120 characters. Focus on actionable insights.
-- Memorable quotes: 1–3 direct quotes or paraphrases from the video (if available). Each under 200 characters.
-- Recommendations: 2–5 actionable next steps or recommendations for the viewer.
-- Hashtags: exactly 3–5 relevant hashtags for social sharing.
+- LANGUAGE: Write ALL content — title, summary, takeaways, quotes, recommendations, hashtags — in the OUTPUT LANGUAGE specified in the user message. If no output language is specified, use the same language as the transcript. Do NOT mix languages.
+- Title: 60–90 characters. Clearly conveys the video topic and hooks the reader.
+- Summary: 5–8 sentences covering the full arc of the video — context, core arguments, key developments, and conclusion. Aim for 400–600 characters.
+- Key takeaways: exactly 5–9 bullet points. Each 80–150 characters. Cover both high-level insights and specific, actionable details. Do NOT use English section labels; write the content in the output language.
+- Memorable quotes: 2–4 direct quotes or close paraphrases from the video. Each 100–250 characters. If fewer are available, include what exists.
+- Recommendations: 3–6 concrete next steps or recommendations for the viewer. Each 60–120 characters.
+- Hashtags: exactly 4–6 relevant hashtags for social sharing, in the output language where applicable.
+- Total output target: the combined character count of all text fields must be approximately 3,000 characters (±20%).
 - Follow the specified tone of voice precisely.
 
 OUTPUT FORMAT — return ONLY this JSON object, no extra text:
 {
-  "title": "<50-80 chars recap title>",
-  "summary": "<2-4 sentence summary>",
-  "key_takeaways": ["<takeaway 1, max 120 chars>", "<takeaway 2>"],
-  "quotes": ["<quote or paraphrase, max 200 chars>"],
-  "recommendations": ["<recommendation 1>", "<recommendation 2>"],
-  "hashtags": ["#tag1", "#tag2", "#tag3"]
+  "title": "<60-90 chars recap title>",
+  "summary": "<5-8 sentence summary, 400-600 chars>",
+  "key_takeaways": ["<takeaway 1, 80-150 chars>", "<takeaway 2>", "<takeaway 3>", "<takeaway 4>", "<takeaway 5>"],
+  "quotes": ["<quote or paraphrase, 100-250 chars>", "<quote 2>"],
+  "recommendations": ["<recommendation 1, 60-120 chars>", "<recommendation 2>", "<recommendation 3>"],
+  "hashtags": ["#tag1", "#tag2", "#tag3", "#tag4"]
 }
 
-The "quotes" field may be an empty array if no suitable quotes are available.
+The "quotes" field may contain fewer items if the transcript has limited quotable content.
 """
 
 SYSTEM_PROMPTS = {
@@ -246,37 +247,37 @@ def _validate_video_recap_content(data: dict) -> None:
     """Raise ContentValidationError if the video recap violates structural constraints."""
     title = data.get("title", "")
     title_len = len(title)
-    if title and not (50 <= title_len <= 80):
+    if title and not (55 <= title_len <= 95):
         raise ContentValidationError(
-            f"Video recap title length {title_len} chars is outside the required range 50–80 chars.",
+            f"Video recap title length {title_len} chars is outside the required range 55–95 chars.",
             actual_chars=title_len,
         )
     takeaways = data.get("key_takeaways", [])
     count = len(takeaways)
-    if not (3 <= count <= 7):
+    if not (5 <= count <= 9):
         raise ContentValidationError(
-            f"Video recap must contain 3–7 key takeaways, got {count}.",
+            f"Video recap must contain 5–9 key takeaways, got {count}.",
             actual_chars=count,
         )
     quotes = data.get("quotes", [])
     quote_count = len(quotes)
-    if quote_count > 3:
+    if quote_count > 4:
         raise ContentValidationError(
-            f"Video recap must contain at most 3 quotes, got {quote_count}.",
+            f"Video recap must contain at most 4 quotes, got {quote_count}.",
             actual_chars=quote_count,
         )
     recommendations = data.get("recommendations", [])
     rec_count = len(recommendations)
-    if not (2 <= rec_count <= 5):
+    if not (3 <= rec_count <= 6):
         raise ContentValidationError(
-            f"Video recap must contain 2–5 recommendations, got {rec_count}.",
+            f"Video recap must contain 3–6 recommendations, got {rec_count}.",
             actual_chars=rec_count,
         )
     hashtags = data.get("hashtags", [])
     hashtag_count = len(hashtags)
-    if not (3 <= hashtag_count <= 5):
+    if not (4 <= hashtag_count <= 6):
         raise ContentValidationError(
-            f"Video recap must contain 3–5 hashtags, got {hashtag_count}.",
+            f"Video recap must contain 4–6 hashtags, got {hashtag_count}.",
             actual_chars=hashtag_count,
         )
 
@@ -289,9 +290,16 @@ def _build_user_message(
     target_max_chars: Optional[int],
     include_source_link: bool = False,
     video_url: Optional[str] = None,
+    language: Optional[str] = None,
 ) -> str:
     """Compose the user message with all contextual instructions."""
     parts = []
+
+    if language:
+        parts.append(
+            f"Output language: {language}. Write ALL content exclusively in this language, "
+            "regardless of the language of the input transcript."
+        )
 
     tone_key = tone_of_voice or "professional_expert"
     tone_desc = TONE_DESCRIPTIONS.get(tone_key, TONE_DESCRIPTIONS["professional_expert"])
@@ -333,7 +341,7 @@ def generate_content(
     transcript: str,
     content_type: str,
     keywords: List[str],
-    language: Optional[str] = None,  # noqa: ARG001 – reserved for future language-aware prompts
+    language: Optional[str] = None,
     tone_of_voice: Optional[str] = None,
     target_min_chars: Optional[int] = None,
     target_max_chars: Optional[int] = None,
@@ -353,7 +361,7 @@ def generate_content(
     system_prompt = SYSTEM_PROMPTS.get(content_type, SYSTEM_PROMPTS["seo_article"])
     user_message = _build_user_message(
         transcript, keywords, tone_of_voice, target_min_chars, target_max_chars,
-        include_source_link, video_url,
+        include_source_link, video_url, language,
     )
 
     try:
@@ -435,7 +443,7 @@ def generate_content_stream(
     transcript: str,
     content_type: str,
     keywords: List[str],
-    language: Optional[str] = None,  # noqa: ARG001
+    language: Optional[str] = None,
     tone_of_voice: Optional[str] = None,
     target_min_chars: Optional[int] = None,
     target_max_chars: Optional[int] = None,
@@ -453,7 +461,7 @@ def generate_content_stream(
     system_prompt = SYSTEM_PROMPTS.get(content_type, SYSTEM_PROMPTS["seo_article"])
     user_message = _build_user_message(
         transcript, keywords, tone_of_voice, target_min_chars, target_max_chars,
-        include_source_link, video_url,
+        include_source_link, video_url, language,
     )
 
     try:

@@ -12,11 +12,13 @@ export interface GenerationSettingsValue {
   targetMaxChars?: number;
   includeSourceLink: boolean;
   videoUrl: string;
+  language: string;
 }
 
 interface GenerationSettingsProps {
   onSettingsChange: (settings: GenerationSettingsValue) => void;
   videoUrl?: string;
+  transcriptCharCount?: number;
 }
 
 const contentTypeOptions = [
@@ -89,7 +91,24 @@ const seoLengthOptions = [
   },
 ];
 
-export default function GenerationSettings({ onSettingsChange, videoUrl: videoUrlProp }: GenerationSettingsProps) {
+const languageOptions = [
+  { value: "English", label: "🇬🇧 English" },
+  { value: "Chinese", label: "🇨🇳 Chinese" },
+  { value: "Spanish", label: "🇪🇸 Spanish" },
+  { value: "German", label: "🇩🇪 German" },
+  { value: "Russian", label: "Russian" },
+  { value: "French", label: "🇫🇷 French" },
+  { value: "Portuguese", label: "🇵🇹 Portuguese" },
+  { value: "Arabic", label: "🇸🇦 Arabic" },
+  { value: "Ukrainian", label: "🇺🇦 Ukrainian" },
+  { value: "Polish", label: "🇵🇱 Polish" },
+  { value: "Italian", label: "🇮🇹 Italian" },
+];
+
+const LENGTH_EXCEEDED_TOOLTIP =
+  "Not recommended because the input is shorter than the selected article size. Context may become diluted or lost.";
+
+export default function GenerationSettings({ onSettingsChange, videoUrl: videoUrlProp, transcriptCharCount }: GenerationSettingsProps) {
   const [contentType, setContentType] = useState("seo_article");
   const [toneOfVoice, setToneOfVoice] = useState("professional_expert");
   const [seoLength, setSeoLength] = useState("optimal");
@@ -97,6 +116,7 @@ export default function GenerationSettings({ onSettingsChange, videoUrl: videoUr
   const [keywords, setKeywords] = useState<string[]>([]);
   const [includeSourceLink, setIncludeSourceLink] = useState(false);
   const [videoUrl, setVideoUrl] = useState("");
+  const [language, setLanguage] = useState("English");
 
   const currentLength = seoLengthOptions.find((o) => o.value === seoLength);
 
@@ -112,6 +132,7 @@ export default function GenerationSettings({ onSettingsChange, videoUrl: videoUr
       targetMaxChars: usesLength ? len?.max : undefined,
       includeSourceLink,
       videoUrl,
+      language,
       ...overrides,
     });
   };
@@ -152,6 +173,7 @@ export default function GenerationSettings({ onSettingsChange, videoUrl: videoUr
       targetMaxChars: usesLength ? len?.max : undefined,
       includeSourceLink,
       videoUrl,
+      language,
     });
   };
 
@@ -172,6 +194,7 @@ export default function GenerationSettings({ onSettingsChange, videoUrl: videoUr
       targetMaxChars: usesLength ? len?.max : undefined,
       includeSourceLink,
       videoUrl,
+      language,
     });
   };
 
@@ -191,6 +214,11 @@ export default function GenerationSettings({ onSettingsChange, videoUrl: videoUr
     notify({ videoUrl: val });
   };
 
+  const handleLanguageChange = (val: string) => {
+    setLanguage(val);
+    notify({ language: val });
+  };
+
   const toneOptions = toneOptionsByType[contentType] ?? toneOptionsByType.seo_article;
 
   return (
@@ -207,6 +235,14 @@ export default function GenerationSettings({ onSettingsChange, videoUrl: videoUr
         onChange={handleContentTypeChange}
       />
 
+      {/* Language dropdown — output language for generation */}
+      <Select
+        label="Language"
+        options={languageOptions}
+        value={language}
+        onChange={handleLanguageChange}
+      />
+
       {/* Content length dropdown — shown only for seo_article */}
       <AnimatePresence>
         {contentType === "seo_article" && (
@@ -218,12 +254,36 @@ export default function GenerationSettings({ onSettingsChange, videoUrl: videoUr
             transition={{ duration: 0.25 }}
           >
             <div className="space-y-2">
-              <Select
-                label="Content Length"
-                options={seoLengthOptions.map((o) => ({ value: o.value, label: o.label }))}
-                value={seoLength}
-                onChange={handleSeoLengthChange}
-              />
+              <label className="text-sm font-medium text-slate-300">Content Length</label>
+              <div className="space-y-1.5">
+                {seoLengthOptions.map((opt) => {
+                  const exceedsInput =
+                    transcriptCharCount !== undefined && transcriptCharCount > 0 && opt.min > transcriptCharCount;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => handleSeoLengthChange(opt.value)}
+                      className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl border text-sm text-left transition-all duration-200 ${
+                        seoLength === opt.value
+                          ? "border-emerald-500/60 bg-emerald-500/10 text-emerald-300"
+                          : "border-white/10 bg-white/5 text-slate-300 hover:border-white/20 hover:text-white"
+                      }`}
+                    >
+                      <span>{opt.label}</span>
+                      {exceedsInput && (
+                        <span
+                          title={LENGTH_EXCEEDED_TOOLTIP}
+                          className="ml-2 flex-shrink-0 inline-flex items-center justify-center w-4 h-4 rounded-full bg-slate-700 text-slate-400 text-[10px] cursor-help select-none"
+                          aria-label={LENGTH_EXCEEDED_TOOLTIP}
+                        >
+                          i
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
               {currentLength && (
                 <p className="text-xs text-slate-500 pl-1">{currentLength.description}</p>
               )}
@@ -372,3 +432,4 @@ export default function GenerationSettings({ onSettingsChange, videoUrl: videoUr
     </motion.div>
   );
 }
+

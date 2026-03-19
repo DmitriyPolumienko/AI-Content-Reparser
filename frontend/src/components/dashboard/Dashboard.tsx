@@ -43,6 +43,7 @@ export default function Dashboard() {
     toneOfVoice: "professional_expert",
     includeSourceLink: false,
     videoUrl: "",
+    language: "English",
   });
   const [generatedContent, setGeneratedContent] = useState("");
   const [charsRemaining, setCharsRemaining] = useState(18000);
@@ -127,7 +128,7 @@ export default function Dashboard() {
         transcript,
         content_type: settings.contentType,
         keywords: settings.keywords,
-        language: selectedLanguage ?? undefined,
+        language: settings.language || undefined,
         tone_of_voice: settings.toneOfVoice,
         target_min_chars: settings.targetMinChars,
         target_max_chars: settings.targetMaxChars,
@@ -175,7 +176,7 @@ export default function Dashboard() {
     setStep(1);
     setUrl("");
     setTranscript("");
-    setSettings({ contentType: "seo_article", keywords: [], toneOfVoice: "professional_expert", includeSourceLink: false, videoUrl: "" });
+    setSettings({ contentType: "seo_article", keywords: [], toneOfVoice: "professional_expert", includeSourceLink: false, videoUrl: "", language: "English" });
     setGeneratedContent("");
     setStreamedContent("");
     setError("");
@@ -386,7 +387,7 @@ export default function Dashboard() {
                         />
                       ) : (
                         <>
-                          <GenerationSettings onSettingsChange={setSettings} videoUrl={url} />
+                          <GenerationSettings onSettingsChange={setSettings} videoUrl={url} transcriptCharCount={transcript.length} />
 
                           {error && (
                             <motion.p

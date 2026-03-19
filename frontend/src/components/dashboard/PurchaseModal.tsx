@@ -95,7 +95,7 @@ export default function PurchaseModal({
                   <h3 className="text-xl font-bold text-white mb-2">Purchase Successful!</h3>
                   <p className="text-slate-400 text-sm mb-1">
                     <span className="text-white font-semibold">
-                      {purchasedPkg.symbols.toLocaleString()} symbols
+                      {purchasedPkg.symbols.toLocaleString()} chars
                     </span>{" "}
                     have been added to your balance.
                   </p>
@@ -118,14 +118,14 @@ export default function PurchaseModal({
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-lg">⚠️</span>
-                        <h3 className="text-lg font-bold text-white">Symbol Limit Reached</h3>
+                        <h3 className="text-lg font-bold text-white">Char Limit Reached</h3>
                       </div>
                       <p className="text-slate-400 text-sm">
                         You have{" "}
                         <span className="text-white font-medium">
                           {charsRemaining.toLocaleString()}
                         </span>{" "}
-                        symbols remaining. Purchase a package to continue.
+                        chars remaining. Purchase a package to continue.
                       </p>
                     </div>
                     <button
@@ -172,7 +172,7 @@ export default function PurchaseModal({
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <span className="text-sm font-semibold text-white">
-                                {pkg.symbols.toLocaleString()} symbols
+                                {pkg.symbols.toLocaleString()} chars
                               </span>
                               {meta.highlight && (
                                 <span className="text-xs px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 font-medium">
@@ -215,7 +215,7 @@ export default function PurchaseModal({
                       }
                     >
                       {selectedId
-                        ? `Purchase ${packages.find((p) => p.id === selectedId)?.symbols.toLocaleString()} symbols — $${packages.find((p) => p.id === selectedId)?.price_usd.toFixed(2)}`
+                        ? `Purchase ${packages.find((p) => p.id === selectedId)?.symbols.toLocaleString()} chars — $${packages.find((p) => p.id === selectedId)?.price_usd.toFixed(2)}`
                         : "Select a package"}
                     </button>
                   </div>
