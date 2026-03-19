@@ -17,7 +17,7 @@ from app.models.schemas import (
 )
 from app.services import balance as balance_service
 from app.services.database import increment_videos_processed as _db_increment_videos_processed
-from app.services.generator import generate_content, generate_content_stream
+from app.services.generator import generate_content, generate_content_stream, ContentValidationError
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -113,6 +113,8 @@ def generate(request: GenerateRequest, http_request: Request):
             tone_of_voice=request.tone_of_voice,
             target_min_chars=request.target_min_chars,
             target_max_chars=request.target_max_chars,
+            include_source_link=request.include_source_link,
+            video_url=request.video_url,
         )
 
         output_chars = len(content)
@@ -163,21 +165,20 @@ def generate(request: GenerateRequest, http_request: Request):
 
     except HTTPException:
         raise
+    except ContentValidationError as exc:
+        logger.warning(
+            "generate content_out_of_range",
+            extra={**_log_extra, "status_code": 422, "duration_ms": _ms(t0)},
+        )
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": exc.code,
+                "message": str(exc),
+                "actual_chars": exc.actual_chars,
+            },
+        )
     except ValueError as exc:
-        code = getattr(exc, "code", None)
-        if code == "content_out_of_range":
-            logger.warning(
-                "generate content_out_of_range",
-                extra={**_log_extra, "status_code": 422, "duration_ms": _ms(t0)},
-            )
-            raise HTTPException(
-                status_code=422,
-                detail={
-                    "code": "content_out_of_range",
-                    "message": str(exc),
-                    "actual_chars": getattr(exc, "actual_chars", None),
-                },
-            )
         logger.warning(
             "generate validation error",
             extra={**_log_extra, "status_code": 422, "duration_ms": _ms(t0)},
@@ -255,6 +256,8 @@ async def generate_stream(request: GenerateRequest, http_request: Request):
                 tone_of_voice=request.tone_of_voice,
                 target_min_chars=request.target_min_chars,
                 target_max_chars=request.target_max_chars,
+                include_source_link=request.include_source_link,
+                video_url=request.video_url,
             ):
                 accumulated.append(delta)
                 yield _sse({"type": "delta", "text": delta})

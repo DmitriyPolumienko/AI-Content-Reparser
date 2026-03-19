@@ -37,6 +37,8 @@ export interface GenerateParams {
   target_min_chars?: number;
   target_max_chars?: number;
   language?: string;
+  include_source_link?: boolean;
+  video_url?: string | null;
 }
 
 export type StreamEvent =
