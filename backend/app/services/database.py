@@ -1,7 +1,7 @@
 """Supabase database service for persisting transcripts and generated content."""
 
 import logging
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 from app.config import settings
 
@@ -163,6 +163,96 @@ def increment_videos_processed() -> Optional[int]:
             return int(response.data)
     except Exception as exc:
         logger.error("Failed to increment videos_processed in Supabase: %s", exc)
+
+    return None
+
+
+def save_user_generation(
+    *,
+    user_id: str,
+    content_type: str,
+    content: str,
+    title: Optional[str] = None,
+    video_url: Optional[str] = None,
+) -> Optional[str]:
+    """
+    Persist a generation to the ``generation_history`` table.
+
+    Returns the new row UUID on success, or ``None`` on failure.
+    """
+    client = _get_client()
+    if client is None:
+        return None
+
+    try:
+        row: Dict[str, Any] = {
+            "user_id": user_id,
+            "content_type": content_type,
+            "content": content,
+        }
+        if title:
+            row["title"] = title
+        if video_url:
+            row["video_url"] = video_url
+
+        response = client.table("generation_history").insert(row).execute()
+        if response.data:
+            return response.data[0].get("id")
+    except Exception as exc:
+        logger.error("Failed to save user generation to Supabase: %s", exc)
+
+    return None
+
+
+def list_user_generations(
+    user_id: str,
+    limit: int = 10,
+) -> List[Dict[str, Any]]:
+    """
+    Return up to ``limit`` recent generations for ``user_id``.
+
+    Each item contains: id, content_type, title, video_url, created_at.
+    Returns an empty list if Supabase is not configured or the query fails.
+    """
+    client = _get_client()
+    if client is None:
+        return []
+
+    try:
+        response = (
+            client.table("generation_history")
+            .select("id, content_type, title, video_url, created_at")
+            .eq("user_id", user_id)
+            .order("created_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        return response.data or []
+    except Exception as exc:
+        logger.error("Failed to list user generations from Supabase: %s", exc)
+
+    return []
+
+
+def get_generation_by_id(generation_id: str) -> Optional[Dict[str, Any]]:
+    """
+    Return a single generation row by its UUID, or ``None`` if not found / on error.
+    """
+    client = _get_client()
+    if client is None:
+        return None
+
+    try:
+        response = (
+            client.table("generation_history")
+            .select("id, user_id, content_type, title, video_url, content, created_at")
+            .eq("id", generation_id)
+            .single()
+            .execute()
+        )
+        return response.data or None
+    except Exception as exc:
+        logger.error("Failed to fetch generation %s from Supabase: %s", generation_id, exc)
 
     return None
 

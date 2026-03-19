@@ -15,7 +15,7 @@ import ShimmerButton from "@/components/effects/ShimmerButton";
 import Navbar from "@/components/landing/Navbar";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import ErrorState from "@/components/ui/ErrorState";
-import { streamGenerateContent, SymbolPackage } from "@/lib/api";
+import { streamGenerateContent, listGenerations, getGeneration, SymbolPackage, GenerationHistoryItem } from "@/lib/api";
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -63,6 +63,14 @@ export default function Dashboard() {
   const [overLimitPackages, setOverLimitPackages] = useState<SymbolPackage[]>([]);
   const [overLimitBillingNote, setOverLimitBillingNote] = useState<string | undefined>();
 
+  // Generation history
+  const [history, setHistory] = useState<GenerationHistoryItem[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  // TODO: replace with real user authentication once auth is implemented
+  const MOCK_USER_ID = "mock-user-123";
+  // Delay after stream end to allow backend to finish saving the generation
+  const HISTORY_REFRESH_DELAY_MS = 1500;
+
   // Fetch the current generation counter from the backend on mount
   useEffect(() => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -78,6 +86,19 @@ export default function Dashboard() {
         // Non-critical; keep the local default value
       });
   }, []);
+
+  // Fetch history on mount
+  useEffect(() => {
+    setHistoryLoading(true);
+    listGenerations(MOCK_USER_ID).then((items) => {
+      setHistory(items);
+      setHistoryLoading(false);
+    });
+  }, []);
+
+  const refreshHistory = () => {
+    listGenerations(MOCK_USER_ID).then(setHistory);
+  };
 
   const handleExtract = (extractedUrl: string, extractedTranscript: string, language?: string) => {
     setUrl(extractedUrl);
@@ -125,6 +146,8 @@ export default function Dashboard() {
           setCharsRemaining(event.chars_remaining);
           setVideosProcessed(event.videos_processed);
           setStep(4);
+          // Refresh history after a short delay to let the backend save
+          setTimeout(() => refreshHistory(), HISTORY_REFRESH_DELAY_MS);
         } else if (event.type === "error") {
           setIsStreaming(false);
           setLoading(false);
@@ -166,8 +189,27 @@ export default function Dashboard() {
     setCharsRemaining((prev) => prev + pkg.symbols);
   };
 
+  const handleHistoryItemClick = async (item: GenerationHistoryItem) => {
+    if (item.content) {
+      // Full content already available (shouldn't happen from list, but handle it)
+      setStreamedContent(item.content);
+      setGeneratedContent(item.content);
+      setIsStreaming(false);
+      setDrawerOpen(true);
+      return;
+    }
+    // Fetch full generation from API
+    const full = await getGeneration(item.id);
+    if (full?.content) {
+      setStreamedContent(full.content);
+      setGeneratedContent(full.content);
+      setIsStreaming(false);
+      setDrawerOpen(true);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-[#030014] relative overflow-hidden">
+    <div className="min-h-screen bg-[#030014] relative overflow-x-hidden">
       <GradientOrbs />
       <Navbar variant="dashboard" charsRemaining={charsRemaining} onStartOver={handleStartOver} />
 
@@ -178,8 +220,8 @@ export default function Dashboard() {
         />
 
         {/* Main layout — central content + streaming drawer */}
-        <div className="flex items-start gap-0 transition-all duration-350">
-          <main className="relative z-10 flex-1 min-w-0 px-4 sm:px-6 pb-10 pt-2 max-w-5xl mx-auto w-full">
+        <div className="flex items-start gap-0 transition-all duration-350 overflow-x-hidden">
+          <main className="relative z-10 flex-1 min-w-0 px-4 sm:px-6 pb-10 pt-2 max-w-5xl mx-auto w-full overflow-x-hidden">
             {/* Stats banner */}
             <motion.div
               initial={{ opacity: 0, y: -10 }}
@@ -501,7 +543,7 @@ export default function Dashboard() {
           </main>
 
           {/* Streaming Drawer — right side, pushes content */}
-          <div className="h-full sticky top-16">
+          <div className="h-full sticky top-16 flex-shrink-0">
             <StreamingDrawer
               isOpen={drawerOpen}
               isStreaming={isStreaming}
@@ -510,6 +552,51 @@ export default function Dashboard() {
             />
           </div>
         </div>
+
+        {/* Last Results — history section */}
+        {(history.length > 0 || historyLoading) && (
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 pb-12 mt-4">
+            <div className="bg-gradient-to-r from-slate-800/50 to-slate-900/50 border border-white/5 rounded-xl p-6">
+              <h3 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
+                <span>🕐</span> Last Results
+              </h3>
+              {historyLoading ? (
+                <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-16 bg-white/5 rounded-lg animate-pulse" />
+                  ))}
+                </div>
+              ) : (
+                <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {history.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => handleHistoryItemClick(item)}
+                      className="text-left p-3 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/15 transition-all group"
+                    >
+                      <div className="flex items-start gap-2">
+                        <span className="text-base flex-shrink-0 mt-0.5">
+                          {item.content_type === "seo_article" ? "📄" : item.content_type === "linkedin_post" ? "💼" : "🐦"}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-slate-200 truncate group-hover:text-white transition-colors">
+                            {item.title || "Untitled"}
+                          </p>
+                          {item.video_url && (
+                            <p className="text-xs text-slate-500 truncate mt-0.5">{item.video_url}</p>
+                          )}
+                          <p className="text-[10px] text-slate-600 mt-1">
+                            {new Date(item.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Purchase Modal */}
