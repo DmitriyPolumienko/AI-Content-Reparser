@@ -237,6 +237,8 @@ def _build_user_message(
             f"add a call-to-action and the phrase: \"Watch the full video here: {video_url}\""
         )
 
+    parts.append("Return ONLY valid JSON matching the required output format.")
+
     parts.append(f"\nTranscript to transform:\n\n{transcript}")
     return "\n".join(parts)
 
