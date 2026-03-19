@@ -1,6 +1,7 @@
+import json
 import logging
 import time
-from typing import List, Optional
+from typing import Generator, List, Optional
 
 from openai import OpenAI, APITimeoutError, RateLimitError, APIConnectionError, APIError
 
@@ -11,42 +12,152 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # OpenAI client configuration
 # ---------------------------------------------------------------------------
-# max_retries=3: the SDK will automatically retry transient errors (rate limits,
-#   connection errors) with exponential back-off (1 s, 2 s, 4 s).
-# timeout=60.0: each individual HTTP call to OpenAI is capped at 60 seconds
-#   to prevent the request handler from hanging indefinitely.
-# ---------------------------------------------------------------------------
 client = OpenAI(
     api_key=settings.openai_api_key,
     max_retries=3,
-    timeout=60.0,
+    timeout=120.0,
 )
 
-SYSTEM_PROMPTS = {
-    "seo_article": (
-        "You are an expert SEO content writer. "
-        "Transform the provided transcript into a well-structured SEO article. "
-        "Include an engaging title (H1), clear headings (H2/H3), an introduction, "
-        "body sections with relevant information, and a conclusion. "
-        "Naturally incorporate the required keywords throughout the text. "
-        "Write in a clear, authoritative tone suitable for a professional blog."
-    ),
-    "linkedin_post": (
-        "You are a professional LinkedIn content creator. "
-        "Transform the provided transcript into a compelling LinkedIn post. "
-        "Start with a powerful hook, use short paragraphs, include a call-to-action, "
-        "and end with 3-5 relevant hashtags. "
-        "Naturally incorporate the required keywords. "
-        "Keep the tone professional yet conversational."
-    ),
-    "twitter_thread": (
-        "You are a Twitter/X content creator specializing in viral threads. "
-        "Transform the provided transcript into an engaging Twitter thread. "
-        "Number each tweet (1/, 2/, etc.), start with a hook tweet, "
-        "keep each tweet under 280 characters, and end with a strong CTA tweet. "
-        "Naturally incorporate the required keywords."
-    ),
+MODEL = "gpt-5.4-nano"
+
+# ---------------------------------------------------------------------------
+# Tone of voice descriptions (injected into prompts)
+# ---------------------------------------------------------------------------
+TONE_DESCRIPTIONS = {
+    "professional_expert": "strict, analytical, no slang — suitable for LinkedIn, business blogs",
+    "conversational_friendly": "warm, personal, as if telling a friend — suitable for personal blogs",
+    "provocative_bold": "bold, strong verbs, cuts to the truth — suitable for viral articles and X/Twitter",
+    "educational_instructional": "clear, step-by-step, minimal emotion, maximum utility — suitable for guides",
+    "storyteller": "focuses on personal experience, emotions, and narrative from the video",
 }
+
+# ---------------------------------------------------------------------------
+# SEO Article system prompt (strict JSON output)
+# ---------------------------------------------------------------------------
+SEO_ARTICLE_SYSTEM = """You are an expert SEO content writer. Transform the provided transcript into a well-structured SEO article and return it as a single JSON object.
+
+STRICT SEO RULES (must follow exactly):
+- H1 (title): 50–60 characters. Must contain the main keyword at the BEGINNING.
+- meta_description: 140–160 characters. Must end with a CTA (call-to-action).
+- Headings: minimum 3 H2 headings. If target_chars > 6000, use minimum 5 headings mixing H2 and H3. No maximum, but logically structured.
+- Paragraphs: max 300 characters each. Avoid "walls of text".
+- Lists: minimum one bulleted or numbered list per article.
+- FAQ section at the END: exactly 3–5 Q&A pairs.
+- CTA block: exactly 1–2 sentences, maximum 25 words, direct and clear, no filler phrases.
+- Incorporate all required keywords naturally throughout the text.
+- Tone of voice: follow the specified tone precisely.
+
+OUTPUT FORMAT — return ONLY this JSON object, no extra text:
+{
+  "title": "<H1, 50-60 chars, keyword at start>",
+  "meta_description": "<140-160 chars with CTA at end>",
+  "sections": [
+    {
+      "heading_level": "H2",
+      "heading": "<heading text>",
+      "content": "<paragraph text, max 300 chars each paragraph, separated by newlines>",
+      "list": ["<item1>", "<item2>"]
+    }
+  ],
+  "faq": [
+    {"question": "<question>", "answer": "<concise answer>"}
+  ],
+  "cta": "<1-2 sentences, max 25 words>",
+  "keywords_used": ["<kw1>", "<kw2>"]
+}
+
+The "list" field is optional per section but at least one section must include it.
+"""
+
+# ---------------------------------------------------------------------------
+# LinkedIn Post system prompt (strict JSON output)
+# ---------------------------------------------------------------------------
+LINKEDIN_POST_SYSTEM = """You are a professional LinkedIn content creator. Transform the provided transcript into a compelling LinkedIn post and return it as a single JSON object.
+
+Rules:
+- Start with a powerful hook line.
+- Use short paragraphs (max 3 sentences each).
+- Include a clear call-to-action.
+- End with 3–5 relevant hashtags.
+- Naturally incorporate required keywords.
+- Follow the specified tone of voice.
+
+OUTPUT FORMAT — return ONLY this JSON object, no extra text:
+{
+  "hook": "<opening line that grabs attention>",
+  "paragraphs": ["<paragraph 1>", "<paragraph 2>"],
+  "cta": "<clear call-to-action>",
+  "hashtags": ["#tag1", "#tag2"],
+  "keywords_used": ["<kw1>"]
+}
+"""
+
+# ---------------------------------------------------------------------------
+# Twitter Thread system prompt (strict JSON output)
+# ---------------------------------------------------------------------------
+TWITTER_THREAD_SYSTEM = """You are a Twitter/X content creator specializing in viral threads. Transform the provided transcript into an engaging Twitter thread and return it as a single JSON object.
+
+Rules:
+- Number each tweet (1/, 2/, etc.).
+- Start with a hook tweet.
+- Keep each tweet under 280 characters.
+- End with a strong CTA tweet.
+- Naturally incorporate required keywords.
+- Follow the specified tone of voice.
+
+OUTPUT FORMAT — return ONLY this JSON object, no extra text:
+{
+  "tweets": [
+    {"num": 1, "text": "<hook tweet, under 280 chars>"},
+    {"num": 2, "text": "<content tweet, under 280 chars>"}
+  ],
+  "keywords_used": ["<kw1>"]
+}
+"""
+
+SYSTEM_PROMPTS = {
+    "seo_article": SEO_ARTICLE_SYSTEM,
+    "linkedin_post": LINKEDIN_POST_SYSTEM,
+    "twitter_thread": TWITTER_THREAD_SYSTEM,
+}
+
+
+def _build_user_message(
+    transcript: str,
+    keywords: List[str],
+    tone_of_voice: Optional[str],
+    target_min_chars: Optional[int],
+    target_max_chars: Optional[int],
+) -> str:
+    """Compose the user message with all contextual instructions."""
+    parts = []
+
+    tone_key = tone_of_voice or "professional_expert"
+    tone_desc = TONE_DESCRIPTIONS.get(tone_key, TONE_DESCRIPTIONS["professional_expert"])
+    parts.append(f"Tone of voice: {tone_key.replace('_', ' ').title()} — {tone_desc}.")
+
+    if keywords:
+        parts.append(f"Required keywords (incorporate naturally): {', '.join(keywords)}.")
+
+    if target_min_chars and target_max_chars:
+        parts.append(
+            f"Target content length: {target_min_chars}–{target_max_chars} characters "
+            f"(count all characters in sections + FAQ + CTA combined)."
+        )
+
+    parts.append(f"\nTranscript to transform:\n\n{transcript}")
+    return "\n".join(parts)
+
+
+def _call_responses_api(system_prompt: str, user_message: str) -> str:
+    """Call OpenAI Responses API (non-streaming) and return raw output text."""
+    response = client.responses.create(
+        model=MODEL,
+        instructions=system_prompt,
+        input=user_message,
+        text={"format": {"type": "json_object"}},
+    )
+    return response.output_text or ""
 
 
 def generate_content(
@@ -54,64 +165,134 @@ def generate_content(
     content_type: str,
     keywords: List[str],
     language: Optional[str] = None,  # noqa: ARG001 – reserved for future language-aware prompts
+    tone_of_voice: Optional[str] = None,
+    target_min_chars: Optional[int] = None,
+    target_max_chars: Optional[int] = None,
 ) -> str:
     """
-    Generate formatted content from a transcript using OpenAI GPT-4.1.
-
-    Args:
-        transcript: Raw transcript text.
-        content_type: One of 'seo_article', 'linkedin_post', 'twitter_thread'.
-        keywords: List of required keywords to include.
-        language: Source language code (e.g. 'en', 'ru').
-            Currently unused in the prompt.
-            TODO(language-prompt): use this to customise the system prompt or
-            output language once per-language restrictions are introduced.
+    Generate formatted content from a transcript using OpenAI Responses API (gpt-5.4-nano).
 
     Returns:
-        Generated content as a string.
+        Generated content as a raw JSON string (validated).
+
+    Raises:
+        RuntimeError on API or validation failures.
+        ValueError with .code == 'content_out_of_range' if output is outside target range.
     """
+    system_prompt = SYSTEM_PROMPTS.get(content_type, SYSTEM_PROMPTS["seo_article"])
+    user_message = _build_user_message(
+        transcript, keywords, tone_of_voice, target_min_chars, target_max_chars
+    )
+
     try:
-        system_prompt = SYSTEM_PROMPTS.get(content_type, SYSTEM_PROMPTS["seo_article"])
-
-        keyword_instruction = ""
-        if keywords:
-            keyword_instruction = (
-                f"\n\nRequired keywords to incorporate naturally: {', '.join(keywords)}."
-            )
-
-        user_message = (
-            f"Here is the transcript to transform:{keyword_instruction}\n\n{transcript}"
-        )
-
         t0 = time.monotonic()
-        response = client.chat.completions.create(
-            model="gpt-4.1",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_message},
-            ],
-            temperature=0.7,
-        )
+        raw = _call_responses_api(system_prompt, user_message)
         duration_ms = int((time.monotonic() - t0) * 1000)
-        logger.info("openai call succeeded", extra={"duration_ms": duration_ms, "model": "gpt-4.1"})
+        logger.info(
+            "openai responses API call succeeded",
+            extra={"duration_ms": duration_ms, "model": MODEL},
+        )
 
-        content = response.choices[0].message.content or ""
-        return content
+        # ── Server-side JSON validation with one retry ────────────────────
+        try:
+            json.loads(raw)
+        except json.JSONDecodeError:
+            logger.warning("invalid JSON from model – retrying once", extra={"model": MODEL})
+            retry_message = (
+                user_message
+                + "\n\nIMPORTANT: Your previous response was not valid JSON. "
+                "Return ONLY the JSON object, no explanation, no markdown fences."
+            )
+            t1 = time.monotonic()
+            raw = _call_responses_api(system_prompt, retry_message)
+            retry_ms = int((time.monotonic() - t1) * 1000)
+            logger.info(
+                "openai retry call finished",
+                extra={"duration_ms": retry_ms, "model": MODEL},
+            )
+            try:
+                json.loads(raw)
+            except json.JSONDecodeError as exc:
+                raise RuntimeError(
+                    "Content generation returned invalid JSON after retry."
+                ) from exc
 
+        # ── Content-length range validation ───────────────────────────────
+        if target_min_chars is not None and target_max_chars is not None:
+            actual_len = len(raw)
+            if actual_len < target_min_chars or actual_len > target_max_chars:
+                err = ValueError(
+                    f"Generated content length {actual_len} chars is outside the "
+                    f"requested range {target_min_chars}–{target_max_chars} chars."
+                )
+                err.code = "content_out_of_range"  # type: ignore[attr-defined]
+                err.actual_chars = actual_len  # type: ignore[attr-defined]
+                raise err
+
+        return raw
+
+    except (ValueError, RuntimeError):
+        raise
     except APITimeoutError as exc:
-        # The SDK has already retried max_retries times; surface a 504-class error.
         logger.error("openai request timed out after retries", exc_info=True)
         raise RuntimeError("Content generation timed out. Please try again.") from exc
     except RateLimitError as exc:
-        # SDK retried; still hitting rate limits → surface a 429-class error.
         logger.error("openai rate limit exceeded after retries", exc_info=True)
         raise RuntimeError("OpenAI rate limit exceeded. Please try again in a moment.") from exc
     except APIConnectionError as exc:
         logger.error("openai connection error", exc_info=True)
         raise RuntimeError("Unable to reach OpenAI API. Please try again.") from exc
     except APIError as exc:
-        # Catches all other OpenAI HTTP errors (4xx/5xx from the OpenAI side).
         logger.error("openai API error: %s", exc, exc_info=True)
+        raise RuntimeError(f"OpenAI API error ({exc.status_code}): {exc.message}") from exc
+    except Exception as exc:
+        raise RuntimeError(f"Content generation failed: {exc}") from exc
+
+
+def generate_content_stream(
+    transcript: str,
+    content_type: str,
+    keywords: List[str],
+    language: Optional[str] = None,  # noqa: ARG001
+    tone_of_voice: Optional[str] = None,
+    target_min_chars: Optional[int] = None,
+    target_max_chars: Optional[int] = None,
+) -> Generator[str, None, None]:
+    """
+    Stream content generation using OpenAI Responses API (stream=True).
+
+    Yields text deltas as they arrive from the model.
+
+    Raises:
+        RuntimeError on API failures.
+    """
+    system_prompt = SYSTEM_PROMPTS.get(content_type, SYSTEM_PROMPTS["seo_article"])
+    user_message = _build_user_message(
+        transcript, keywords, tone_of_voice, target_min_chars, target_max_chars
+    )
+
+    try:
+        stream = client.responses.create(
+            model=MODEL,
+            instructions=system_prompt,
+            input=user_message,
+            text={"format": {"type": "json_object"}},
+            stream=True,
+        )
+        for event in stream:
+            if event.type == "response.output_text.delta":
+                yield event.delta
+    except APITimeoutError as exc:
+        logger.error("openai stream timed out", exc_info=True)
+        raise RuntimeError("Content generation timed out. Please try again.") from exc
+    except RateLimitError as exc:
+        logger.error("openai stream rate limit exceeded", exc_info=True)
+        raise RuntimeError("OpenAI rate limit exceeded. Please try again in a moment.") from exc
+    except APIConnectionError as exc:
+        logger.error("openai stream connection error", exc_info=True)
+        raise RuntimeError("Unable to reach OpenAI API. Please try again.") from exc
+    except APIError as exc:
+        logger.error("openai stream API error: %s", exc, exc_info=True)
         raise RuntimeError(f"OpenAI API error ({exc.status_code}): {exc.message}") from exc
     except Exception as exc:
         raise RuntimeError(f"Content generation failed: {exc}") from exc

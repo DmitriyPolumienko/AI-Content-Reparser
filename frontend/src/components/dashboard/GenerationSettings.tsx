@@ -1,11 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Select from "@/components/ui/Select";
 
+export interface GenerationSettingsValue {
+  contentType: string;
+  keywords: string[];
+  toneOfVoice: string;
+  targetMinChars?: number;
+  targetMaxChars?: number;
+}
+
 interface GenerationSettingsProps {
-  onSettingsChange: (settings: { contentType: string; keywords: string[] }) => void;
+  onSettingsChange: (settings: GenerationSettingsValue) => void;
 }
 
 const contentTypeOptions = [
@@ -14,17 +22,79 @@ const contentTypeOptions = [
   { value: "twitter_thread", label: "🐦 Twitter Thread" },
 ];
 
+const toneOptions = [
+  { value: "professional_expert", label: "🧑‍💼 Professional / Expert" },
+  { value: "conversational_friendly", label: "💬 Conversational / Friendly" },
+  { value: "provocative_bold", label: "🔥 Provocative / Bold" },
+  { value: "educational_instructional", label: "📚 Educational / Instructional" },
+  { value: "storyteller", label: "📖 Storyteller" },
+];
+
+const seoLengthOptions = [
+  {
+    value: "micro",
+    label: "⚡ Micro-Post (1,500–2,500 chars)",
+    min: 1500,
+    max: 2500,
+    description: "Quick notes, Facebook posts, short news — ideal for Shorts",
+  },
+  {
+    value: "optimal",
+    label: "🎯 Optimal SEO Article (3,000–5,000 chars)",
+    min: 3000,
+    max: 5000,
+    description: "Best for corporate blogs — deep coverage with strong keyword placement",
+  },
+  {
+    value: "longread",
+    label: "📖 Standard Longread (5,000–8,000 chars)",
+    min: 5000,
+    max: 8000,
+    description: "Tutorials, service reviews, expert columns — wide Google ranking",
+  },
+  {
+    value: "deepdive",
+    label: "🔬 Deep Dive Analysis (10,000–20,000 chars)",
+    min: 10000,
+    max: 20000,
+    description: "Interviews, webinars, podcasts — complex H2–H4 hierarchy required",
+  },
+];
+
 export default function GenerationSettings({ onSettingsChange }: GenerationSettingsProps) {
   const [contentType, setContentType] = useState("seo_article");
+  const [toneOfVoice, setToneOfVoice] = useState("professional_expert");
+  const [seoLength, setSeoLength] = useState("optimal");
   const [keywordInput, setKeywordInput] = useState("");
   const [keywords, setKeywords] = useState<string[]>([]);
+
+  const currentLength = seoLengthOptions.find((o) => o.value === seoLength);
+
+  const notify = (overrides: Partial<GenerationSettingsValue> = {}) => {
+    const len = seoLengthOptions.find((o) => o.value === seoLength);
+    const isSeo = (overrides.contentType ?? contentType) === "seo_article";
+    onSettingsChange({
+      contentType,
+      keywords,
+      toneOfVoice,
+      targetMinChars: isSeo ? len?.min : undefined,
+      targetMaxChars: isSeo ? len?.max : undefined,
+      ...overrides,
+    });
+  };
+
+  // Emit initial settings on mount
+  useEffect(() => {
+    notify();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const addKeyword = (value: string) => {
     const trimmed = value.trim().replace(/,+\s*$/, "");
     if (trimmed && !keywords.includes(trimmed)) {
       const next = [...keywords, trimmed];
       setKeywords(next);
-      onSettingsChange({ contentType, keywords: next });
+      notify({ keywords: next });
     }
     setKeywordInput("");
   };
@@ -32,12 +102,37 @@ export default function GenerationSettings({ onSettingsChange }: GenerationSetti
   const removeKeyword = (kw: string) => {
     const next = keywords.filter((k) => k !== kw);
     setKeywords(next);
-    onSettingsChange({ contentType, keywords: next });
+    notify({ keywords: next });
   };
 
   const handleContentTypeChange = (val: string) => {
     setContentType(val);
-    onSettingsChange({ contentType: val, keywords });
+    const isSeo = val === "seo_article";
+    const len = seoLengthOptions.find((o) => o.value === seoLength);
+    onSettingsChange({
+      contentType: val,
+      keywords,
+      toneOfVoice,
+      targetMinChars: isSeo ? len?.min : undefined,
+      targetMaxChars: isSeo ? len?.max : undefined,
+    });
+  };
+
+  const handleToneChange = (val: string) => {
+    setToneOfVoice(val);
+    notify({ toneOfVoice: val });
+  };
+
+  const handleSeoLengthChange = (val: string) => {
+    setSeoLength(val);
+    const len = seoLengthOptions.find((o) => o.value === val);
+    onSettingsChange({
+      contentType,
+      keywords,
+      toneOfVoice,
+      targetMinChars: contentType === "seo_article" ? len?.min : undefined,
+      targetMaxChars: contentType === "seo_article" ? len?.max : undefined,
+    });
   };
 
   return (
@@ -52,6 +147,39 @@ export default function GenerationSettings({ onSettingsChange }: GenerationSetti
         options={contentTypeOptions}
         value={contentType}
         onChange={handleContentTypeChange}
+      />
+
+      {/* SEO Article length dropdown — only shown for seo_article */}
+      <AnimatePresence>
+        {contentType === "seo_article" && (
+          <motion.div
+            key="seo-length"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.25 }}
+          >
+            <div className="space-y-2">
+              <Select
+                label="Article Length"
+                options={seoLengthOptions.map((o) => ({ value: o.value, label: o.label }))}
+                value={seoLength}
+                onChange={handleSeoLengthChange}
+              />
+              {currentLength && (
+                <p className="text-xs text-slate-500 pl-1">{currentLength.description}</p>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Tone of Voice — mandatory for all content types */}
+      <Select
+        label="Tone of Voice"
+        options={toneOptions}
+        value={toneOfVoice}
+        onChange={handleToneChange}
       />
 
       <div className="space-y-2">

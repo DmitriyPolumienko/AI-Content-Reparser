@@ -77,7 +77,7 @@ Add the Supabase credentials to your backend and frontend `.env` files (see
 
 | Variable | Description |
 |---|---|
-| `OPENAI_API_KEY` | OpenAI API key (GPT-4.1) |
+| `OPENAI_API_KEY` | OpenAI API key — required for content generation (model: `gpt-5.4-nano` via Responses API) |
 | `OPENAI_MODEL` | OpenAI model name (default: `gpt-4.1`) |
 | `ALLOWED_ORIGINS` | Comma-separated list of allowed CORS origins |
 | `ALLOWED_ORIGINS_REGEX` | Regex pattern for dynamic CORS origins (default: `https://.*\.vercel\.app`) |
