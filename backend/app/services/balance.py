@@ -17,9 +17,33 @@ Overage:
 """
 
 import datetime
+import sys
 from typing import Any, Dict
 
 from app.services.plan_config import PLAN_LIMITS, PlanLimits, get_period_start_utc
+
+# ---------------------------------------------------------------------------
+# TEMPORARY – remove once user roles / account features are fully implemented.
+# ⚠️  NON-PRODUCTION ONLY: this bypass is safe because "mock-user-123" is a
+#     hard-coded mock user that only exists in the in-memory MOCK_USERS store
+#     used during local development / staging.  It must be removed before any
+#     real user-authentication system is wired up.
+# This user ID bypasses all per-request and period symbol limits so that
+# full end-to-end generation can be tested without hitting the free-plan cap.
+# To revert: delete this block and all three "_is_unlimited_user" branches below.
+# ---------------------------------------------------------------------------
+_TESTING_UNLIMITED_USER_ID = "mock-user-123"
+_UNLIMITED_PLAN_LIMITS = PlanLimits(
+    name="Unlimited (testing)",
+    price_per_month=0.0,
+    period="daily",  # required field; never evaluated for this user (bypassed early)
+    period_limit=sys.maxsize,
+    max_input_chars=sys.maxsize,
+    max_output_chars=sys.maxsize,
+    overage_allowed=True,
+    overage_cap_multiplier=None,
+    video_minutes_tooltip="Unlimited (testing)",
+)
 
 # ---------------------------------------------------------------------------
 # Mock user store
@@ -69,6 +93,9 @@ def _ensure_period(user: Dict[str, Any]) -> None:
 
 def get_plan_limits(user_id: str) -> PlanLimits:
     """Return the PlanLimits for the given user."""
+    # TEMPORARY: bypass all limits for the test user (see _TESTING_UNLIMITED_USER_ID).
+    if user_id == _TESTING_UNLIMITED_USER_ID:
+        return _UNLIMITED_PLAN_LIMITS
     user = MOCK_USERS.get(user_id)
     if user is None:
         raise ValueError(f"User '{user_id}' not found.")
@@ -77,6 +104,9 @@ def get_plan_limits(user_id: str) -> PlanLimits:
 
 def get_balance(user_id: str) -> int:
     """Return the number of symbols remaining for the user in the current period."""
+    # TEMPORARY: bypass all limits for the test user (see _TESTING_UNLIMITED_USER_ID).
+    if user_id == _TESTING_UNLIMITED_USER_ID:
+        return sys.maxsize
     user = MOCK_USERS.get(user_id)
     if user is None:
         raise ValueError(f"User '{user_id}' not found.")
@@ -97,6 +127,9 @@ def deduct_balance(user_id: str, chars_used: int) -> int:
     - Free plan has exhausted its period limit (no overage)
     - Pro/Enterprise has exhausted the overage cap
     """
+    # TEMPORARY: bypass all limits for the test user (see _TESTING_UNLIMITED_USER_ID).
+    if user_id == _TESTING_UNLIMITED_USER_ID:
+        return sys.maxsize
     user = MOCK_USERS.get(user_id)
     if user is None:
         raise ValueError(f"User '{user_id}' not found.")
