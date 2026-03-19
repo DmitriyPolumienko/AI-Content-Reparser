@@ -76,7 +76,7 @@ export default function Navbar({ variant = "landing", charsRemaining, onStartOve
           {isDashboard ? (
             <>
               <div className="px-3 py-1.5 glass rounded-full text-xs text-slate-400">
-                Symbols remaining:{" "}
+                Chars remaining:{" "}
                 <span className="text-emerald-400 font-semibold">
                   {(charsRemaining ?? 0).toLocaleString()}
                 </span>
@@ -148,7 +148,7 @@ export default function Navbar({ variant = "landing", charsRemaining, onStartOve
               {isDashboard ? (
                 <>
                   <div className="px-3 py-1.5 glass rounded-full text-xs text-slate-400 text-center">
-                    Symbols remaining:{" "}
+                    Chars remaining:{" "}
                     <span className="text-emerald-400 font-semibold">
                       {(charsRemaining ?? 0).toLocaleString()}
                     </span>

@@ -162,7 +162,7 @@ export default function TranscriptSelector({ url, onSelect }: TranscriptSelector
         )}
       </ShimmerButton>
 
-      {/* Skeleton loader while fetching */}
+      {/* Loading indicator while fetching */}
       <AnimatePresence>
         {loading && (
           <motion.div
@@ -172,15 +172,6 @@ export default function TranscriptSelector({ url, onSelect }: TranscriptSelector
             className="space-y-2"
           >
             <p className="text-sm font-medium text-slate-300">Fetching available transcripts...</p>
-            <div className="space-y-2">
-              {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="h-10 bg-white/8 border border-white/15 rounded-xl animate-pulse"
-                  style={{ animationDelay: `${i * 100}ms` }}
-                />
-              ))}
-            </div>
           </motion.div>
         )}
       </AnimatePresence>

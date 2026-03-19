@@ -69,7 +69,7 @@ const plans: Plan[] = [
     annualPrice: 0,
     description: "Perfect for trying out AI content generation.",
     features: [
-      { text: "18,000 symbols / week", tooltip: "≈ 10–15 min video (average)" },
+      { text: "18,000 chars / week", tooltip: "≈ 10–15 min video (average)" },
       { text: "Max request: 3k input / 3k output" },
       { text: "YouTube support" },
       { text: "Basic SEO optimization" },
@@ -83,7 +83,7 @@ const plans: Plan[] = [
     annualPrice: 8.99,
     description: "For creators serious about scaling their content.",
     features: [
-      { text: "90,000 symbols / day", tooltip: "≈ 60 min video (average)" },
+      { text: "90,000 chars / day", tooltip: "≈ 60 min video (average)" },
       { text: "Max request: 50k input / 20k output" },
       { text: "All content types" },
       { text: "All platforms (YouTube, Twitch, TikTok)" },
@@ -99,7 +99,7 @@ const plans: Plan[] = [
     annualPrice: 20.99,
     description: "Unlimited scale for teams and agencies.",
     features: [
-      { text: "360,000 symbols / day", tooltip: "≈ 4 hours video (average)" },
+      { text: "360,000 chars / day", tooltip: "≈ 4 hours video (average)" },
       { text: "Max request: 150k input / 30k output" },
       { text: "All content types" },
       { text: "API access" },
@@ -260,7 +260,7 @@ export default function Pricing() {
           transition={{ duration: 0.5, delay: 0.4 }}
           className="text-center text-slate-500 text-sm mt-8"
         >
-          Need more symbols?{" "}
+          Need more chars?{" "}
           <a href="#" className="text-emerald-400 hover:text-emerald-300 underline transition-colors">
             Purchase additional credits
           </a>{" "}

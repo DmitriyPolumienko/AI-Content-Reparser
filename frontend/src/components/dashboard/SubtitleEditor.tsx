@@ -38,7 +38,10 @@ export default function SubtitleEditor({ transcript, onChange }: SubtitleEditorP
           <span className="px-3 py-1 glass rounded-full text-xs text-slate-400">
             {wordCount.toLocaleString()} words
           </span>
-          <span className="px-3 py-1 glass rounded-full text-xs text-slate-400">
+          <span
+            title="This amount will be deducted from your balance."
+            className="px-3 py-1 glass rounded-full text-xs font-medium text-emerald-400 cursor-help"
+          >
             {charCount.toLocaleString()} chars
           </span>
         </div>
@@ -54,6 +57,9 @@ export default function SubtitleEditor({ transcript, onChange }: SubtitleEditorP
 
       <p className="text-slate-600 text-xs">
         Edit the transcript to correct any errors or add context before generating.
+      </p>
+      <p className="text-slate-600 text-xs">
+        Line breaks are AI‑inferred and may not match original timing; the overall meaning is preserved.
       </p>
     </motion.div>
   );
