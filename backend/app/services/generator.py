@@ -50,6 +50,7 @@ TONE_DESCRIPTIONS = {
 SEO_ARTICLE_SYSTEM = """You are an expert SEO content writer. Transform the provided transcript into a well-structured SEO article and return it as a single JSON object.
 
 STRICT SEO RULES (must follow exactly):
+- LANGUAGE: Write ALL content — title, meta_description, headings, paragraphs, FAQ, CTA — in the SAME language as the input transcript. Do NOT use English if the transcript is in another language.
 - H1 (title): 50–60 characters. Must contain the main keyword at the BEGINNING.
 - meta_description: 140–160 characters. Must end with a CTA (call-to-action).
 - Headings: minimum 3 H2 headings. If target_chars > 6000, use minimum 5 headings mixing H2 and H3. No maximum, but logically structured.
@@ -88,6 +89,7 @@ The "list" field is optional per section but at least one section must include i
 LINKEDIN_POST_SYSTEM = """You are a professional LinkedIn content creator. Transform the provided transcript into a compelling LinkedIn post and return it as a single JSON object.
 
 STRICT LINKEDIN RULES (must follow exactly):
+- LANGUAGE: Write ALL content — hook, body, list items, CTA question, hashtags — in the SAME language as the input transcript. Do NOT use English if the transcript is in another language.
 - Hook (first line): MAXIMUM 140 characters. Must contain intrigue, a problem, or a bold statement that stops the scroll.
 - Total post length: 1500–3000 characters (count all text: hook + body paragraphs + list items + cta_question + hashtags combined).
 - Paragraphs: maximum 2 sentences each. Use plenty of white space for readability.
@@ -118,6 +120,7 @@ OUTPUT FORMAT — return ONLY this JSON object, no extra text:
 TWITTER_THREAD_SYSTEM = """You are a Twitter/X content creator specializing in viral threads. Transform the provided transcript into an engaging Twitter thread and return it as a single JSON object.
 
 STRICT TWITTER THREAD RULES (must follow exactly):
+- LANGUAGE: Write ALL tweets in the SAME language as the input transcript. Do NOT use English if the transcript is in another language.
 - Tweet count: 5–10 tweets. Choose based on content depth; never pad with filler content.
 - Numbering: MANDATORY. Use "1/" or "1/n" format (e.g. "1/7") at the start of EVERY tweet.
 - Hook tweet (first tweet): Formula: [Result/Problem] + [Promise of value] + 🧵
@@ -146,13 +149,13 @@ The last tweet in the array is always the final summary + CTA tweet.
 VIDEO_RECAP_SYSTEM = """You are an expert content summarizer. Transform the provided transcript into an engaging video recap and return it as a single JSON object.
 
 STRICT VIDEO RECAP RULES (must follow exactly):
+- LANGUAGE: Write ALL content — title, summary, takeaways, quotes, recommendations — in the SAME language as the input transcript. Do NOT use English if the transcript is in another language.
 - Title: 50–80 characters. Clearly conveys the video topic.
 - Summary: 2–4 sentences. The most essential takeaway from the video.
 - Key takeaways: exactly 3–7 bullet points. Each under 120 characters. Focus on actionable insights.
 - Memorable quotes: 1–3 direct quotes or paraphrases from the video (if available). Each under 200 characters.
 - Recommendations: 2–5 actionable next steps or recommendations for the viewer.
 - Hashtags: exactly 3–5 relevant hashtags for social sharing.
-- Naturally incorporate required keywords.
 - Follow the specified tone of voice precisely.
 
 OUTPUT FORMAT — return ONLY this JSON object, no extra text:
@@ -162,8 +165,7 @@ OUTPUT FORMAT — return ONLY this JSON object, no extra text:
   "key_takeaways": ["<takeaway 1, max 120 chars>", "<takeaway 2>"],
   "quotes": ["<quote or paraphrase, max 200 chars>"],
   "recommendations": ["<recommendation 1>", "<recommendation 2>"],
-  "hashtags": ["#tag1", "#tag2", "#tag3"],
-  "keywords_used": ["<kw1>"]
+  "hashtags": ["#tag1", "#tag2", "#tag3"]
 }
 
 The "quotes" field may be an empty array if no suitable quotes are available.

@@ -65,7 +65,8 @@ export default function Select({
 
         {open && (
           <div
-            className="absolute z-50 w-full mt-1 glass rounded-xl border border-white/10 overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.5)]"
+            className="absolute z-50 w-full mt-1 rounded-xl border border-white/10 overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.5)]"
+            style={{ background: "#0d0d1f" }}
             role="listbox"
           >
             {options.map((option) => (
