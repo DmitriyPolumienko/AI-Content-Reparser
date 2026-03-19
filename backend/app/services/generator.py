@@ -38,6 +38,10 @@ TONE_DESCRIPTIONS = {
     "punchy_bold": "short punchy sentences, strong action verbs, minimal adjectives, maximum impact",
     "controversial": "contrarian opener — 'popular opinion is wrong, here's why...'; thought-provoking",
     "data_driven": "emphasis on numbers, statistics, and specific insights extracted from the video",
+    # Video Recap tones
+    "concise_summary": "brief, factual, skimmable — just the essentials in plain clear language",
+    "engaging_recap": "energetic, highlights the most interesting moments, invites the reader to watch",
+    "educational_review": "detailed, analytical, explains why each insight matters",
 }
 
 # ---------------------------------------------------------------------------
@@ -136,10 +140,40 @@ OUTPUT FORMAT — return ONLY this JSON object, no extra text:
 The last tweet in the array is always the final summary + CTA tweet.
 """
 
+# ---------------------------------------------------------------------------
+# Video Recap system prompt (strict JSON output)
+# ---------------------------------------------------------------------------
+VIDEO_RECAP_SYSTEM = """You are an expert content summarizer. Transform the provided transcript into an engaging video recap and return it as a single JSON object.
+
+STRICT VIDEO RECAP RULES (must follow exactly):
+- Title: 50–80 characters. Clearly conveys the video topic.
+- Summary: 2–4 sentences. The most essential takeaway from the video.
+- Key takeaways: exactly 3–7 bullet points. Each under 120 characters. Focus on actionable insights.
+- Memorable quotes: 1–3 direct quotes or paraphrases from the video (if available). Each under 200 characters.
+- Recommendations: 2–5 actionable next steps or recommendations for the viewer.
+- Hashtags: exactly 3–5 relevant hashtags for social sharing.
+- Naturally incorporate required keywords.
+- Follow the specified tone of voice precisely.
+
+OUTPUT FORMAT — return ONLY this JSON object, no extra text:
+{
+  "title": "<50-80 chars recap title>",
+  "summary": "<2-4 sentence summary>",
+  "key_takeaways": ["<takeaway 1, max 120 chars>", "<takeaway 2>"],
+  "quotes": ["<quote or paraphrase, max 200 chars>"],
+  "recommendations": ["<recommendation 1>", "<recommendation 2>"],
+  "hashtags": ["#tag1", "#tag2", "#tag3"],
+  "keywords_used": ["<kw1>"]
+}
+
+The "quotes" field may be an empty array if no suitable quotes are available.
+"""
+
 SYSTEM_PROMPTS = {
     "seo_article": SEO_ARTICLE_SYSTEM,
     "linkedin_post": LINKEDIN_POST_SYSTEM,
     "twitter_thread": TWITTER_THREAD_SYSTEM,
+    "video_recap": VIDEO_RECAP_SYSTEM,
 }
 
 
@@ -204,6 +238,45 @@ def _validate_twitter_content(data: dict) -> None:
                 f"Tweet {tweet.get('num', '?')} exceeds 280 characters ({len(text)} chars).",
                 actual_chars=len(text),
             )
+
+
+def _validate_video_recap_content(data: dict) -> None:
+    """Raise ContentValidationError if the video recap violates structural constraints."""
+    title = data.get("title", "")
+    title_len = len(title)
+    if title and not (50 <= title_len <= 80):
+        raise ContentValidationError(
+            f"Video recap title length {title_len} chars is outside the required range 50–80 chars.",
+            actual_chars=title_len,
+        )
+    takeaways = data.get("key_takeaways", [])
+    count = len(takeaways)
+    if not (3 <= count <= 7):
+        raise ContentValidationError(
+            f"Video recap must contain 3–7 key takeaways, got {count}.",
+            actual_chars=count,
+        )
+    quotes = data.get("quotes", [])
+    quote_count = len(quotes)
+    if quote_count > 3:
+        raise ContentValidationError(
+            f"Video recap must contain at most 3 quotes, got {quote_count}.",
+            actual_chars=quote_count,
+        )
+    recommendations = data.get("recommendations", [])
+    rec_count = len(recommendations)
+    if not (2 <= rec_count <= 5):
+        raise ContentValidationError(
+            f"Video recap must contain 2–5 recommendations, got {rec_count}.",
+            actual_chars=rec_count,
+        )
+    hashtags = data.get("hashtags", [])
+    hashtag_count = len(hashtags)
+    if not (3 <= hashtag_count <= 5):
+        raise ContentValidationError(
+            f"Video recap must contain 3–5 hashtags, got {hashtag_count}.",
+            actual_chars=hashtag_count,
+        )
 
 
 def _build_user_message(
@@ -331,6 +404,10 @@ def generate_content(
         # ── Twitter structural validation ─────────────────────────────────
         if content_type == "twitter_thread":
             _validate_twitter_content(parsed)
+
+        # ── Video Recap structural validation ─────────────────────────────
+        if content_type == "video_recap":
+            _validate_video_recap_content(parsed)
 
         return raw
 
