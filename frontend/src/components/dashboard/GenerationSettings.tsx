@@ -16,6 +16,7 @@ export interface GenerationSettingsValue {
 
 interface GenerationSettingsProps {
   onSettingsChange: (settings: GenerationSettingsValue) => void;
+  videoUrl?: string;
 }
 
 const contentTypeOptions = [
@@ -88,7 +89,7 @@ const seoLengthOptions = [
   },
 ];
 
-export default function GenerationSettings({ onSettingsChange }: GenerationSettingsProps) {
+export default function GenerationSettings({ onSettingsChange, videoUrl: videoUrlProp }: GenerationSettingsProps) {
   const [contentType, setContentType] = useState("seo_article");
   const [toneOfVoice, setToneOfVoice] = useState("professional_expert");
   const [seoLength, setSeoLength] = useState("optimal");
@@ -102,7 +103,7 @@ export default function GenerationSettings({ onSettingsChange }: GenerationSetti
   const notify = (overrides: Partial<GenerationSettingsValue> = {}) => {
     const len = seoLengthOptions.find((o) => o.value === seoLength);
     const ct = overrides.contentType ?? contentType;
-    const usesLength = ct === "seo_article" || ct === "video_recap";
+    const usesLength = ct === "seo_article";
     onSettingsChange({
       contentType,
       keywords,
@@ -141,7 +142,7 @@ export default function GenerationSettings({ onSettingsChange }: GenerationSetti
     setContentType(val);
     const defaultTone = defaultToneByType[val] ?? "professional_expert";
     setToneOfVoice(defaultTone);
-    const usesLength = val === "seo_article" || val === "video_recap";
+    const usesLength = val === "seo_article";
     const len = seoLengthOptions.find((o) => o.value === seoLength);
     onSettingsChange({
       contentType: val,
@@ -161,7 +162,7 @@ export default function GenerationSettings({ onSettingsChange }: GenerationSetti
 
   const handleSeoLengthChange = (val: string) => {
     setSeoLength(val);
-    const usesLength = contentType === "seo_article" || contentType === "video_recap";
+    const usesLength = contentType === "seo_article";
     const len = seoLengthOptions.find((o) => o.value === val);
     onSettingsChange({
       contentType,
@@ -176,7 +177,13 @@ export default function GenerationSettings({ onSettingsChange }: GenerationSetti
 
   const handleIncludeSourceLinkChange = (checked: boolean) => {
     setIncludeSourceLink(checked);
-    notify({ includeSourceLink: checked });
+    // Auto-fill video URL from the prop when enabling the option
+    if (checked && videoUrlProp && !videoUrl) {
+      setVideoUrl(videoUrlProp);
+      notify({ includeSourceLink: checked, videoUrl: videoUrlProp });
+    } else {
+      notify({ includeSourceLink: checked });
+    }
   };
 
   const handleVideoUrlChange = (val: string) => {
@@ -200,9 +207,9 @@ export default function GenerationSettings({ onSettingsChange }: GenerationSetti
         onChange={handleContentTypeChange}
       />
 
-      {/* Content length dropdown — shown for seo_article and video_recap */}
+      {/* Content length dropdown — shown only for seo_article */}
       <AnimatePresence>
-        {(contentType === "seo_article" || contentType === "video_recap") && (
+        {contentType === "seo_article" && (
           <motion.div
             key="content-length"
             initial={{ opacity: 0, height: 0 }}
@@ -275,18 +282,37 @@ export default function GenerationSettings({ onSettingsChange }: GenerationSetti
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.2 }}
             >
-              <input
-                type="url"
-                value={videoUrl}
-                onChange={(e) => handleVideoUrlChange(e.target.value)}
-                placeholder="https://youtube.com/watch?v=..."
-                className="w-full bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/60 focus:ring-2 focus:ring-emerald-500/20 transition-all duration-200 py-2.5 px-4 text-sm"
-              />
+              {videoUrlProp ? (
+                <div className="flex items-center gap-2 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl">
+                  <svg className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  </svg>
+                  <span className="text-sm text-slate-300 truncate">{videoUrlProp}</span>
+                </div>
+              ) : (
+                <input
+                  type="url"
+                  value={videoUrl}
+                  onChange={(e) => handleVideoUrlChange(e.target.value)}
+                  placeholder="https://youtube.com/watch?v=..."
+                  className="w-full bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/60 focus:ring-2 focus:ring-emerald-500/20 transition-all duration-200 py-2.5 px-4 text-sm"
+                />
+              )}
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
+      {/* Keywords — hidden for Video Recap */}
+      <AnimatePresence>
+        {contentType !== "video_recap" && (
+        <motion.div
+          key="keywords"
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ duration: 0.25 }}
+        >
       <div className="space-y-2">
         <label className="text-sm font-medium text-slate-300">
           Keywords <span className="text-slate-500 font-normal">(optional)</span>
@@ -340,6 +366,9 @@ export default function GenerationSettings({ onSettingsChange }: GenerationSetti
           Keywords will be naturally integrated into the generated content.
         </p>
       </div>
+        </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

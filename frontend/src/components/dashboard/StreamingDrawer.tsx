@@ -168,7 +168,6 @@ function CleanContentView({ content }: { content: string }) {
         )}
         {keyTakeaways.length > 0 && (
           <div className="space-y-2">
-            <h2 className="text-base font-semibold text-white">🎯 Key Takeaways</h2>
             <ul className="space-y-1.5">
               {keyTakeaways.map((item, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
@@ -181,7 +180,6 @@ function CleanContentView({ content }: { content: string }) {
         )}
         {quotes.length > 0 && (
           <div className="space-y-2">
-            <h2 className="text-base font-semibold text-white">💬 Notable Quotes</h2>
             {quotes.map((quote, i) => (
               <blockquote key={i} className="border-l-2 border-emerald-500/40 pl-3 text-sm text-slate-400 italic">
                 {quote}
@@ -191,7 +189,6 @@ function CleanContentView({ content }: { content: string }) {
         )}
         {recommendations.length > 0 && (
           <div className="space-y-2">
-            <h2 className="text-base font-semibold text-white">✅ Recommendations</h2>
             <ul className="space-y-1.5">
               {recommendations.map((item, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
@@ -493,12 +490,12 @@ export default function StreamingDrawer({ isOpen, isStreaming, content, onClose 
           animate={{ width: collapsed ? 48 : "min(820px, calc(100vw - 220px))", opacity: 1 }}
           exit={{ width: 0, opacity: 0 }}
           transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
-          className="flex-shrink-0 h-full overflow-hidden"
+          className="flex-shrink-0 h-full overflow-hidden rounded-2xl"
           style={{ minWidth: 0 }}
         >
-          {/* Collapsed tab strip */}
+          {/* Collapsed tab strip — only arrow icon */}
           {collapsed ? (
-            <div className="w-12 h-full flex flex-col items-center pt-4 gap-3 bg-white/[0.03] border-l border-white/10">
+            <div className="w-12 h-full flex flex-col items-center pt-4 gap-3 bg-white/[0.03] border border-white/10 rounded-2xl">
               <button
                 onClick={() => setCollapsed(false)}
                 title="Expand output panel"
@@ -515,16 +512,10 @@ export default function StreamingDrawer({ isOpen, isStreaming, content, onClose 
                   {isStreaming && <div className="absolute inset-0 rounded-full bg-yellow-400 animate-ping opacity-60" />}
                 </div>
               )}
-              <span
-                className="text-[10px] text-slate-500 font-medium"
-                style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
-              >
-                {isStreaming ? "Generating…" : content ? "Output" : "Panel"}
-              </span>
             </div>
           ) : (
             <div
-              className="h-full flex flex-col border-l border-white/10 relative"
+              className="h-full flex flex-col border border-white/10 relative rounded-2xl overflow-hidden"
               style={{ width: "min(820px, calc(100vw - 220px))", background: "rgba(5, 3, 25, 0.97)", backdropFilter: "blur(24px)" }}
             >
               {/* Header */}

@@ -10,6 +10,7 @@ import StreamingDrawer from "./StreamingDrawer";
 import PurchaseModal from "./PurchaseModal";
 import SkeletonLoader from "./SkeletonLoader";
 import LoadingProgress from "./LoadingProgress";
+import DashboardFaq from "./DashboardFaq";
 import GradientOrbs from "@/components/effects/GradientOrbs";
 import ShimmerButton from "@/components/effects/ShimmerButton";
 import Navbar from "@/components/landing/Navbar";
@@ -385,7 +386,7 @@ export default function Dashboard() {
                         />
                       ) : (
                         <>
-                          <GenerationSettings onSettingsChange={setSettings} />
+                          <GenerationSettings onSettingsChange={setSettings} videoUrl={url} />
 
                           {error && (
                             <motion.p
@@ -542,8 +543,8 @@ export default function Dashboard() {
             )}
           </main>
 
-          {/* Streaming Drawer — right side, pushes content */}
-          <div className="h-full sticky top-16 flex-shrink-0">
+          {/* Streaming Drawer — right side, fixed viewport height */}
+          <div className="sticky top-16 flex-shrink-0 self-start" style={{ height: "calc(100vh - 64px)" }}>
             <StreamingDrawer
               isOpen={drawerOpen}
               isStreaming={isStreaming}
@@ -597,6 +598,9 @@ export default function Dashboard() {
             </div>
           </div>
         )}
+
+        {/* SEO FAQ section */}
+        <DashboardFaq />
       </div>
 
       {/* Purchase Modal */}
