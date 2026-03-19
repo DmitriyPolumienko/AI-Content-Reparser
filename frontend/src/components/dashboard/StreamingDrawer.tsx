@@ -197,7 +197,7 @@ function buildCsv(content: string): string {
   if (!data) return "content\n\"" + content.replace(/"/g, '""') + "\"";
   const type = detectContentType(data);
   const rows: string[][] = [];
-  const esc = (s: string) => '"' + String(s).replace(/"/g, '""') + '"';
+  const esc = (s: unknown) => '"' + String(s ?? "").replace(/"/g, '""') + '"';
   if (type === "seo_article") {
     rows.push(["title","meta_description","section_heading","section_content","list_items","faq_question","faq_answer","cta","keywords"]);
     const title = (data.title as string) ?? "";

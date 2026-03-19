@@ -66,7 +66,10 @@ export default function Dashboard() {
   // Generation history
   const [history, setHistory] = useState<GenerationHistoryItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  // TODO: replace with real user authentication once auth is implemented
   const MOCK_USER_ID = "mock-user-123";
+  // Delay after stream end to allow backend to finish saving the generation
+  const HISTORY_REFRESH_DELAY_MS = 1500;
 
   // Fetch the current generation counter from the backend on mount
   useEffect(() => {
@@ -144,7 +147,7 @@ export default function Dashboard() {
           setVideosProcessed(event.videos_processed);
           setStep(4);
           // Refresh history after a short delay to let the backend save
-          setTimeout(() => refreshHistory(), 1500);
+          setTimeout(() => refreshHistory(), HISTORY_REFRESH_DELAY_MS);
         } else if (event.type === "error") {
           setIsStreaming(false);
           setLoading(false);

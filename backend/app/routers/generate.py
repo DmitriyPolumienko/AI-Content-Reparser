@@ -315,6 +315,11 @@ async def generate_stream(request: GenerateRequest, http_request: Request):
             title=title,
             video_url=request.video_url,
         )
+        if generation_id is None:
+            logger.warning(
+                "generate/stream: failed to persist generation to history",
+                extra={**_log_extra, "user_id": request.user_id},
+            )
 
         logger.info(
             "generate/stream completed",
