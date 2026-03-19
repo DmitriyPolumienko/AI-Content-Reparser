@@ -10,6 +10,8 @@ export interface GenerationSettingsValue {
   toneOfVoice: string;
   targetMinChars?: number;
   targetMaxChars?: number;
+  includeSourceLink: boolean;
+  videoUrl: string;
 }
 
 interface GenerationSettingsProps {
@@ -22,13 +24,31 @@ const contentTypeOptions = [
   { value: "twitter_thread", label: "🐦 Twitter Thread" },
 ];
 
-const toneOptions = [
-  { value: "professional_expert", label: "🧑‍💼 Professional / Expert" },
-  { value: "conversational_friendly", label: "💬 Conversational / Friendly" },
-  { value: "provocative_bold", label: "🔥 Provocative / Bold" },
-  { value: "educational_instructional", label: "📚 Educational / Instructional" },
-  { value: "storyteller", label: "📖 Storyteller" },
-];
+const toneOptionsByType: Record<string, { value: string; label: string }[]> = {
+  seo_article: [
+    { value: "professional_expert", label: "🧑‍💼 Professional / Expert" },
+    { value: "conversational_friendly", label: "💬 Conversational / Friendly" },
+    { value: "provocative_bold", label: "🔥 Provocative / Bold" },
+    { value: "educational_instructional", label: "📚 Educational / Instructional" },
+    { value: "storyteller", label: "📖 Storyteller" },
+  ],
+  linkedin_post: [
+    { value: "expert_insight", label: "🔍 Expert Insight" },
+    { value: "personal_story", label: "📖 Personal Story" },
+    { value: "actionable_advice", label: "✅ Actionable Advice" },
+  ],
+  twitter_thread: [
+    { value: "punchy_bold", label: "⚡ Punchy & Bold" },
+    { value: "controversial", label: "🔥 Controversial" },
+    { value: "data_driven", label: "📊 Data-Driven" },
+  ],
+};
+
+const defaultToneByType: Record<string, string> = {
+  seo_article: "professional_expert",
+  linkedin_post: "expert_insight",
+  twitter_thread: "punchy_bold",
+};
 
 const seoLengthOptions = [
   {
@@ -67,6 +87,8 @@ export default function GenerationSettings({ onSettingsChange }: GenerationSetti
   const [seoLength, setSeoLength] = useState("optimal");
   const [keywordInput, setKeywordInput] = useState("");
   const [keywords, setKeywords] = useState<string[]>([]);
+  const [includeSourceLink, setIncludeSourceLink] = useState(false);
+  const [videoUrl, setVideoUrl] = useState("");
 
   const currentLength = seoLengthOptions.find((o) => o.value === seoLength);
 
@@ -79,6 +101,8 @@ export default function GenerationSettings({ onSettingsChange }: GenerationSetti
       toneOfVoice,
       targetMinChars: isSeo ? len?.min : undefined,
       targetMaxChars: isSeo ? len?.max : undefined,
+      includeSourceLink,
+      videoUrl,
       ...overrides,
     });
   };
@@ -107,14 +131,18 @@ export default function GenerationSettings({ onSettingsChange }: GenerationSetti
 
   const handleContentTypeChange = (val: string) => {
     setContentType(val);
+    const defaultTone = defaultToneByType[val] ?? "professional_expert";
+    setToneOfVoice(defaultTone);
     const isSeo = val === "seo_article";
     const len = seoLengthOptions.find((o) => o.value === seoLength);
     onSettingsChange({
       contentType: val,
       keywords,
-      toneOfVoice,
+      toneOfVoice: defaultTone,
       targetMinChars: isSeo ? len?.min : undefined,
       targetMaxChars: isSeo ? len?.max : undefined,
+      includeSourceLink,
+      videoUrl,
     });
   };
 
@@ -132,8 +160,22 @@ export default function GenerationSettings({ onSettingsChange }: GenerationSetti
       toneOfVoice,
       targetMinChars: contentType === "seo_article" ? len?.min : undefined,
       targetMaxChars: contentType === "seo_article" ? len?.max : undefined,
+      includeSourceLink,
+      videoUrl,
     });
   };
+
+  const handleIncludeSourceLinkChange = (checked: boolean) => {
+    setIncludeSourceLink(checked);
+    notify({ includeSourceLink: checked });
+  };
+
+  const handleVideoUrlChange = (val: string) => {
+    setVideoUrl(val);
+    notify({ videoUrl: val });
+  };
+
+  const toneOptions = toneOptionsByType[contentType] ?? toneOptionsByType.seo_article;
 
   return (
     <motion.div
@@ -174,13 +216,67 @@ export default function GenerationSettings({ onSettingsChange }: GenerationSetti
         )}
       </AnimatePresence>
 
-      {/* Tone of Voice — mandatory for all content types */}
+      {/* Tone of Voice — options change per content type */}
       <Select
         label="Tone of Voice"
         options={toneOptions}
         value={toneOfVoice}
         onChange={handleToneChange}
       />
+
+      {/* Include Source Link — shown for all content types */}
+      <div className="space-y-3">
+        <div className="flex items-start gap-3">
+          <div className="relative flex items-center mt-0.5">
+            <input
+              id="include-source-link"
+              type="checkbox"
+              checked={includeSourceLink}
+              onChange={(e) => handleIncludeSourceLinkChange(e.target.checked)}
+              aria-describedby="include-source-link-desc"
+              className="w-4 h-4 rounded border border-white/20 bg-white/5 text-emerald-500 focus:ring-emerald-500/30 focus:ring-2 cursor-pointer accent-emerald-500"
+            />
+          </div>
+          <div className="flex-1">
+            <label
+              htmlFor="include-source-link"
+              className="text-sm font-medium text-slate-300 cursor-pointer flex items-center gap-1.5"
+            >
+              Include Source Link
+              <span
+                title="Automatically adds a call-to-action and the original video link at the end of your post or thread to boost your YouTube views."
+                aria-hidden="true"
+                className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-slate-700 text-slate-400 text-[10px] cursor-help select-none"
+              >
+                ?
+              </span>
+            </label>
+            <p id="include-source-link-desc" className="text-xs text-slate-500 mt-0.5">
+              Adds a CTA + video link at the end to boost YouTube views.
+            </p>
+          </div>
+        </div>
+
+        <AnimatePresence>
+          {includeSourceLink && (
+            <motion.div
+              key="video-url"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <input
+                type="url"
+                value={videoUrl}
+                onChange={(e) => handleVideoUrlChange(e.target.value)}
+                placeholder="https://youtube.com/watch?v=..."
+                className="w-full bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/60 focus:ring-2 focus:ring-emerald-500/20 transition-all duration-200 py-2.5 px-4 text-sm"
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
       <div className="space-y-2">
         <label className="text-sm font-medium text-slate-300">

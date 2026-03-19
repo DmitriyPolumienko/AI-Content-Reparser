@@ -40,6 +40,8 @@ export default function Dashboard() {
     contentType: "seo_article",
     keywords: [],
     toneOfVoice: "professional_expert",
+    includeSourceLink: false,
+    videoUrl: "",
   });
   const [generatedContent, setGeneratedContent] = useState("");
   const [charsRemaining, setCharsRemaining] = useState(18000);
@@ -107,6 +109,8 @@ export default function Dashboard() {
         tone_of_voice: settings.toneOfVoice,
         target_min_chars: settings.targetMinChars,
         target_max_chars: settings.targetMaxChars,
+        include_source_link: settings.includeSourceLink,
+        video_url: settings.includeSourceLink ? settings.videoUrl || null : null,
       },
       (event) => {
         if (event.type === "start") {
@@ -147,7 +151,7 @@ export default function Dashboard() {
     setStep(1);
     setUrl("");
     setTranscript("");
-    setSettings({ contentType: "seo_article", keywords: [], toneOfVoice: "professional_expert" });
+    setSettings({ contentType: "seo_article", keywords: [], toneOfVoice: "professional_expert", includeSourceLink: false, videoUrl: "" });
     setGeneratedContent("");
     setStreamedContent("");
     setError("");
