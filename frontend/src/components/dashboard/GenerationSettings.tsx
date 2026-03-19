@@ -22,6 +22,7 @@ const contentTypeOptions = [
   { value: "seo_article", label: "📄 SEO Article" },
   { value: "linkedin_post", label: "💼 LinkedIn Post" },
   { value: "twitter_thread", label: "🐦 Twitter Thread" },
+  { value: "video_recap", label: "🎬 Video Recap" },
 ];
 
 const toneOptionsByType: Record<string, { value: string; label: string }[]> = {
@@ -42,12 +43,18 @@ const toneOptionsByType: Record<string, { value: string; label: string }[]> = {
     { value: "controversial", label: "🔥 Controversial" },
     { value: "data_driven", label: "📊 Data-Driven" },
   ],
+  video_recap: [
+    { value: "concise_summary", label: "⚡ Concise Summary" },
+    { value: "engaging_recap", label: "🎯 Engaging Recap" },
+    { value: "educational_review", label: "📚 Educational Review" },
+  ],
 };
 
 const defaultToneByType: Record<string, string> = {
   seo_article: "professional_expert",
   linkedin_post: "expert_insight",
   twitter_thread: "punchy_bold",
+  video_recap: "concise_summary",
 };
 
 const seoLengthOptions = [
@@ -94,13 +101,14 @@ export default function GenerationSettings({ onSettingsChange }: GenerationSetti
 
   const notify = (overrides: Partial<GenerationSettingsValue> = {}) => {
     const len = seoLengthOptions.find((o) => o.value === seoLength);
-    const isSeo = (overrides.contentType ?? contentType) === "seo_article";
+    const ct = overrides.contentType ?? contentType;
+    const usesLength = ct === "seo_article" || ct === "video_recap";
     onSettingsChange({
       contentType,
       keywords,
       toneOfVoice,
-      targetMinChars: isSeo ? len?.min : undefined,
-      targetMaxChars: isSeo ? len?.max : undefined,
+      targetMinChars: usesLength ? len?.min : undefined,
+      targetMaxChars: usesLength ? len?.max : undefined,
       includeSourceLink,
       videoUrl,
       ...overrides,
@@ -133,14 +141,14 @@ export default function GenerationSettings({ onSettingsChange }: GenerationSetti
     setContentType(val);
     const defaultTone = defaultToneByType[val] ?? "professional_expert";
     setToneOfVoice(defaultTone);
-    const isSeo = val === "seo_article";
+    const usesLength = val === "seo_article" || val === "video_recap";
     const len = seoLengthOptions.find((o) => o.value === seoLength);
     onSettingsChange({
       contentType: val,
       keywords,
       toneOfVoice: defaultTone,
-      targetMinChars: isSeo ? len?.min : undefined,
-      targetMaxChars: isSeo ? len?.max : undefined,
+      targetMinChars: usesLength ? len?.min : undefined,
+      targetMaxChars: usesLength ? len?.max : undefined,
       includeSourceLink,
       videoUrl,
     });
@@ -153,13 +161,14 @@ export default function GenerationSettings({ onSettingsChange }: GenerationSetti
 
   const handleSeoLengthChange = (val: string) => {
     setSeoLength(val);
+    const usesLength = contentType === "seo_article" || contentType === "video_recap";
     const len = seoLengthOptions.find((o) => o.value === val);
     onSettingsChange({
       contentType,
       keywords,
       toneOfVoice,
-      targetMinChars: contentType === "seo_article" ? len?.min : undefined,
-      targetMaxChars: contentType === "seo_article" ? len?.max : undefined,
+      targetMinChars: usesLength ? len?.min : undefined,
+      targetMaxChars: usesLength ? len?.max : undefined,
       includeSourceLink,
       videoUrl,
     });
@@ -191,11 +200,11 @@ export default function GenerationSettings({ onSettingsChange }: GenerationSetti
         onChange={handleContentTypeChange}
       />
 
-      {/* SEO Article length dropdown — only shown for seo_article */}
+      {/* Content length dropdown — shown for seo_article and video_recap */}
       <AnimatePresence>
-        {contentType === "seo_article" && (
+        {(contentType === "seo_article" || contentType === "video_recap") && (
           <motion.div
-            key="seo-length"
+            key="content-length"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
@@ -203,7 +212,7 @@ export default function GenerationSettings({ onSettingsChange }: GenerationSetti
           >
             <div className="space-y-2">
               <Select
-                label="Article Length"
+                label="Content Length"
                 options={seoLengthOptions.map((o) => ({ value: o.value, label: o.label }))}
                 value={seoLength}
                 onChange={handleSeoLengthChange}

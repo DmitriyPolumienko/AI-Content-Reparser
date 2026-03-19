@@ -23,12 +23,18 @@ VALID_TONES_BY_TYPE: dict[str, set[str]] = {
         "controversial",
         "data_driven",
     },
+    "video_recap": {
+        "concise_summary",
+        "engaging_recap",
+        "educational_review",
+    },
 }
 
 DEFAULT_TONE_BY_TYPE: dict[str, str] = {
     "seo_article": "professional_expert",
     "linkedin_post": "expert_insight",
     "twitter_thread": "punchy_bold",
+    "video_recap": "concise_summary",
 }
 
 

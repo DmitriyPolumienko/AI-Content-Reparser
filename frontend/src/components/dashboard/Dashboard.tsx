@@ -576,7 +576,7 @@ export default function Dashboard() {
                     >
                       <div className="flex items-start gap-2">
                         <span className="text-base flex-shrink-0 mt-0.5">
-                          {item.content_type === "seo_article" ? "📄" : item.content_type === "linkedin_post" ? "💼" : "🐦"}
+                          {item.content_type === "seo_article" ? "📄" : item.content_type === "linkedin_post" ? "💼" : item.content_type === "video_recap" ? "🎬" : "🐦"}
                         </span>
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-slate-200 truncate group-hover:text-white transition-colors">
