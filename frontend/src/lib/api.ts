@@ -44,8 +44,18 @@ export interface GenerateParams {
 export type StreamEvent =
   | { type: "start" }
   | { type: "delta"; text: string }
-  | { type: "end"; chars_remaining: number; videos_processed: number }
+  | { type: "end"; chars_remaining: number; videos_processed: number; generation_id?: string | null }
   | { type: "error"; code: string; message: string; packages?: SymbolPackage[]; billing_note?: string; chars_remaining?: number };
+
+export interface GenerationHistoryItem {
+  id: string;
+  content_type: string;
+  title: string | null;
+  video_url: string | null;
+  created_at: string;
+  /** Only present when fetching a single item by id */
+  content?: string;
+}
 
 export async function extractTranscript(url: string): Promise<ExtractResponse> {
   const res = await fetch(`${API_BASE}/api/extract`, {
@@ -143,3 +153,31 @@ export function streamGenerateContent(
 
   return controller;
 }
+
+/** List recent generations for a user (metadata only, no content). */
+export async function listGenerations(
+  userId: string,
+  limit = 10,
+): Promise<GenerationHistoryItem[]> {
+  try {
+    const res = await fetch(
+      `${API_BASE}/api/history?user_id=${encodeURIComponent(userId)}&limit=${limit}`,
+    );
+    if (!res.ok) return [];
+    return res.json();
+  } catch {
+    return [];
+  }
+}
+
+/** Fetch a single saved generation by id (includes full content). */
+export async function getGeneration(id: string): Promise<GenerationHistoryItem | null> {
+  try {
+    const res = await fetch(`${API_BASE}/api/history/${encodeURIComponent(id)}`);
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+

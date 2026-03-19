@@ -2,7 +2,7 @@ import json
 import logging
 import threading
 import time
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Optional
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
@@ -16,7 +16,10 @@ from app.models.schemas import (
     SymbolPackage,
 )
 from app.services import balance as balance_service
-from app.services.database import increment_videos_processed as _db_increment_videos_processed
+from app.services.database import (
+    increment_videos_processed as _db_increment_videos_processed,
+    save_user_generation as _db_save_user_generation,
+)
 from app.services.generator import generate_content, generate_content_stream, ContentValidationError
 
 router = APIRouter()
@@ -55,6 +58,25 @@ def _over_limit_detail(user_id: str) -> OverLimitDetail:
         chars_remaining=chars_remaining,
         packages=[SymbolPackage(**p) for p in SYMBOL_PACKAGES],
     )
+
+
+def _extract_title(content_json: str, content_type: str) -> Optional[str]:
+    """Extract a human-readable title from a raw JSON content string."""
+    try:
+        data = json.loads(content_json)
+        if content_type == "seo_article":
+            return data.get("title") or None
+        if content_type == "linkedin_post":
+            hook = data.get("hook", "")
+            return hook[:80] if hook else None
+        if content_type == "twitter_thread":
+            tweets = data.get("tweets", [])
+            if tweets:
+                text = tweets[0].get("text", "")
+                return text[:80] if text else None
+    except Exception:
+        pass
+    return None
 
 
 @router.post("/generate", response_model=GenerateResponse)
@@ -284,6 +306,16 @@ async def generate_stream(request: GenerateRequest, http_request: Request):
         else:
             videos_processed = _increment_generation_count()
 
+        # ── Save generation to history ─────────────────────────────────────
+        title = _extract_title(full_content, request.content_type)
+        generation_id = _db_save_user_generation(
+            user_id=request.user_id,
+            content_type=request.content_type,
+            content=full_content,
+            title=title,
+            video_url=request.video_url,
+        )
+
         logger.info(
             "generate/stream completed",
             extra={
@@ -298,6 +330,7 @@ async def generate_stream(request: GenerateRequest, http_request: Request):
             "type": "end",
             "chars_remaining": chars_remaining,
             "videos_processed": videos_processed,
+            "generation_id": generation_id,
         })
 
     return StreamingResponse(
