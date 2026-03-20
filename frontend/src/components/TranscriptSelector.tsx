@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ShimmerButton from "@/components/effects/ShimmerButton";
+import LoadingProgress from "@/components/dashboard/LoadingProgress";
 
 export interface TranscriptOption {
   language_code: string;
@@ -162,19 +163,13 @@ export default function TranscriptSelector({ url, onSelect }: TranscriptSelector
         )}
       </ShimmerButton>
 
-      {/* Loading indicator while fetching */}
-      <AnimatePresence>
-        {loading && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="space-y-2"
-          >
-            <p className="text-sm font-medium text-slate-300">Fetching available transcripts...</p>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Loading progress while analyzing */}
+      {loading && (
+        <LoadingProgress
+          message="Analyzing video transcripts..."
+          warningMessage="Please wait while we fetch available transcript tracks for this video."
+        />
+      )}
 
       {/* Error message */}
       <AnimatePresence>

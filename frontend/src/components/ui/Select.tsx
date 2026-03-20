@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import type { ReactNode } from "react";
 
 interface SelectOption {
   value: string;
   label: string;
+  icon?: ReactNode;
 }
 
 interface SelectProps {
@@ -51,7 +53,12 @@ export default function Select({
           aria-expanded={open}
         >
           <span className={selected ? "text-white" : "text-slate-500"}>
-            {selected ? selected.label : placeholder}
+            {selected ? (
+              <span className="flex items-center gap-2">
+                {selected.icon && <span className="flex-shrink-0 leading-none">{selected.icon}</span>}
+                {selected.label}
+              </span>
+            ) : placeholder}
           </span>
           <svg
             className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
@@ -88,6 +95,7 @@ export default function Select({
                 {option.value === value && (
                   <span className="mr-2 text-emerald-400">✓</span>
                 )}
+                {option.icon && <span className="mr-2 flex-shrink-0 leading-none">{option.icon}</span>}
                 {option.label}
               </button>
             ))}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Select from "@/components/ui/Select";
 
@@ -91,18 +91,26 @@ const seoLengthOptions = [
   },
 ];
 
+/** Shared style for flag-icons span elements in the Language dropdown. */
+const FLAG_STYLE: React.CSSProperties = { width: "1.25rem", height: "0.9375rem", display: "inline-block" };
+
+/** Helper to render a flag-icons span for the Language dropdown (null = no flag, e.g. Russian). */
+function langFlag(code: string, label: string) {
+  return <span className={`fi fi-${code}`} style={FLAG_STYLE} role="img" aria-label={label} />;
+}
+
 const languageOptions = [
-  { value: "English", label: "🇬🇧 English" },
-  { value: "Chinese", label: "🇨🇳 Chinese" },
-  { value: "Spanish", label: "🇪🇸 Spanish" },
-  { value: "German", label: "🇩🇪 German" },
-  { value: "Russian", label: "Russian" },
-  { value: "French", label: "🇫🇷 French" },
-  { value: "Portuguese", label: "🇵🇹 Portuguese" },
-  { value: "Arabic", label: "🇸🇦 Arabic" },
-  { value: "Ukrainian", label: "🇺🇦 Ukrainian" },
-  { value: "Polish", label: "🇵🇱 Polish" },
-  { value: "Italian", label: "🇮🇹 Italian" },
+  { value: "English",    label: "English",    icon: langFlag("gb", "English") },
+  { value: "Chinese",    label: "Chinese",    icon: langFlag("cn", "Chinese") },
+  { value: "Spanish",    label: "Spanish",    icon: langFlag("es", "Spanish") },
+  { value: "German",     label: "German",     icon: langFlag("de", "German") },
+  { value: "Russian",    label: "Russian" },
+  { value: "French",     label: "French",     icon: langFlag("fr", "French") },
+  { value: "Portuguese", label: "Portuguese", icon: langFlag("pt", "Portuguese") },
+  { value: "Arabic",     label: "Arabic",     icon: langFlag("sa", "Arabic") },
+  { value: "Ukrainian",  label: "Ukrainian",  icon: langFlag("ua", "Ukrainian") },
+  { value: "Polish",     label: "Polish",     icon: langFlag("pl", "Polish") },
+  { value: "Italian",    label: "Italian",    icon: langFlag("it", "Italian") },
 ];
 
 const LENGTH_EXCEEDED_TOOLTIP =
