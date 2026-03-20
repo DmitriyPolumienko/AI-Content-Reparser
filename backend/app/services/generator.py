@@ -317,7 +317,9 @@ def _build_user_message(
     if include_source_link and video_url:
         parts.append(
             f"Include Source Link: YES. At the end of your post or thread (final tweet / after CTA question), "
-            f"add a call-to-action and the phrase: \"Watch the full video here: {video_url}\""
+            f"add a short call-to-action sentence in the output language (the same language used for the rest of the content), "
+            f"followed by this URL on its own line: {video_url}  "
+            f"Only the URL itself stays in its original form — all surrounding text must be in the output language."
         )
 
     parts.append("Return ONLY valid JSON matching the required output format.")
