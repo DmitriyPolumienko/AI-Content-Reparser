@@ -487,19 +487,27 @@ export default function StreamingDrawer({ isOpen, isStreaming, content, onClose 
           key="streaming-drawer"
           initial={{ width: 0, opacity: 0 }}
           // Leave at least ~220px for the main content column when drawer is open
-          animate={{ width: collapsed ? 48 : "min(820px, calc(100vw - 220px))", opacity: 1 }}
+          animate={{ width: collapsed ? 48 : "min(820px, calc(100vw - 520px))", opacity: 1 }}
           exit={{ width: 0, opacity: 0 }}
-          transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
-          className="flex-shrink-0 h-full overflow-hidden rounded-2xl"
-          style={{ minWidth: 0 }}
+          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+          className="flex-shrink-0 h-full overflow-hidden"
+          style={{ minWidth: 0, borderLeft: "1px solid rgba(157,80,255,0.1)" }}
         >
-          {/* Collapsed tab strip — only arrow icon */}
+          {/* Collapsed tab strip */}
           {collapsed ? (
-            <div className="w-12 h-full flex flex-col items-center pt-4 gap-3 bg-white/[0.03] border border-white/10 rounded-2xl">
+            <div
+              className="w-12 h-full flex flex-col items-center pt-4 gap-3"
+              style={{ background: "#0C0D11" }}
+            >
               <button
                 onClick={() => setCollapsed(false)}
                 title="Expand output panel"
-                className="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-emerald-500/30 text-slate-400 hover:text-emerald-400 transition-all"
+                className="p-2 rounded-[8px] transition-all"
+                style={{
+                  background: "rgba(157,80,255,0.1)",
+                  border: "1px solid rgba(157,80,255,0.2)",
+                  color: "#9D50FF",
+                }}
                 aria-label="Expand output panel"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -508,28 +516,60 @@ export default function StreamingDrawer({ isOpen, isStreaming, content, onClose 
               </button>
               {(isStreaming || content) && (
                 <div className="relative">
-                  <div className={`w-2 h-2 rounded-full mx-auto ${isStreaming ? "bg-yellow-400" : "bg-emerald-400"}`} />
-                  {isStreaming && <div className="absolute inset-0 rounded-full bg-yellow-400 animate-ping opacity-60" />}
+                  <div
+                    className="w-2 h-2 rounded-full mx-auto"
+                    style={{ background: isStreaming ? "#9D50FF" : "#B78AFF" }}
+                  />
+                  {isStreaming && (
+                    <div
+                      className="absolute inset-0 rounded-full"
+                      style={{ background: "#9D50FF", animation: "violet-ping 1.5s ease-in-out infinite" }}
+                    />
+                  )}
                 </div>
               )}
             </div>
           ) : (
             <div
-              className="h-full flex flex-col border border-white/10 relative rounded-2xl overflow-hidden"
-              style={{ width: "min(820px, calc(100vw - 220px))", background: "rgba(5, 3, 25, 0.97)", backdropFilter: "blur(24px)" }}
+              className="h-full flex flex-col relative overflow-hidden"
+              style={{
+                width: "min(820px, calc(100vw - 520px))",
+                background: "#0C0D11",
+                borderLeft: "1px solid rgba(157,80,255,0.1)",
+              }}
             >
               {/* Header */}
-              <div className="flex items-center gap-0 border-b border-white/10 bg-white/[0.03]">
-                <div className="flex items-center gap-2.5 px-4 py-3 border-r border-white/10 border-b-2 border-b-emerald-500/60 -mb-px">
+              <div
+                className="flex items-center gap-0"
+                style={{ borderBottom: "1px solid rgba(157,80,255,0.1)", background: "rgba(18,20,28,0.6)" }}
+              >
+                <div
+                  className="flex items-center gap-2.5 px-4 py-3 border-r"
+                  style={{
+                    borderRight: "1px solid rgba(157,80,255,0.1)",
+                    borderBottom: `2px solid ${isStreaming ? "#9D50FF" : "#B78AFF"}`,
+                    marginBottom: "-1px",
+                  }}
+                >
                   <div className="relative flex-shrink-0">
-                    <div className={`w-2 h-2 rounded-full ${isStreaming ? "bg-yellow-400" : "bg-emerald-400"}`} />
-                    {isStreaming && <div className="absolute inset-0 rounded-full bg-yellow-400 animate-ping opacity-60" />}
+                    <div
+                      className="w-2 h-2 rounded-full"
+                      style={{ background: isStreaming ? "#9D50FF" : "#B78AFF" }}
+                    />
+                    {isStreaming && (
+                      <div
+                        className="absolute inset-0 rounded-full"
+                        style={{ background: "#9D50FF", animation: "violet-ping 1.5s ease-in-out infinite" }}
+                      />
+                    )}
                   </div>
-                  <span className="text-sm font-semibold text-white whitespace-nowrap" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                  <span className="text-sm font-semibold text-white whitespace-nowrap font-display">
                     {isStreaming ? (content ? "Generating…" : "Analyzing…") : "Output"}
                   </span>
                   {!isStreaming && content && (
-                    <span className="text-xs text-slate-500 font-mono">{content.length.toLocaleString()} chars</span>
+                    <span className="text-xs font-mono" style={{ color: "rgba(255,255,255,0.3)" }}>
+                      {content.length.toLocaleString()} chars
+                    </span>
                   )}
                 </div>
                 <div className="flex-1" />
@@ -537,46 +577,102 @@ export default function StreamingDrawer({ isOpen, isStreaming, content, onClose 
                   {!isStreaming && content && (
                     <>
                       {/* View mode toggle */}
-                      <div className="flex items-center gap-0.5 bg-white/5 border border-white/10 rounded-lg p-0.5 mr-1">
-                        <button onClick={() => setViewMode("clean")} title="Clean view"
-                          className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all ${viewMode === "clean" ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" : "text-slate-500 hover:text-slate-300"}`}>
+                      <div
+                        className="flex items-center gap-0.5 p-0.5 mr-1"
+                        style={{
+                          background: "rgba(157,80,255,0.06)",
+                          border: "1px solid rgba(157,80,255,0.15)",
+                          borderRadius: 8,
+                        }}
+                      >
+                        <button
+                          onClick={() => setViewMode("clean")}
+                          title="Clean view"
+                          className="px-2.5 py-1 text-xs font-medium rounded-[6px] transition-all"
+                          style={{
+                            background: viewMode === "clean" ? "rgba(157,80,255,0.2)" : "transparent",
+                            color: viewMode === "clean" ? "#9D50FF" : "rgba(255,255,255,0.4)",
+                            border: viewMode === "clean" ? "1px solid rgba(157,80,255,0.3)" : "1px solid transparent",
+                          }}
+                        >
                           Clean
                         </button>
-                        <button onClick={() => setViewMode("raw")} title="Raw JSON view"
-                          className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all ${viewMode === "raw" ? "bg-white/10 text-white" : "text-slate-500 hover:text-slate-300"}`}>
+                        <button
+                          onClick={() => setViewMode("raw")}
+                          title="Raw JSON view"
+                          className="px-2.5 py-1 text-xs font-medium rounded-[6px] transition-all"
+                          style={{
+                            background: viewMode === "raw" ? "rgba(255,255,255,0.08)" : "transparent",
+                            color: viewMode === "raw" ? "#fff" : "rgba(255,255,255,0.4)",
+                            border: viewMode === "raw" ? "1px solid rgba(255,255,255,0.1)" : "1px solid transparent",
+                          }}
+                        >
                           JSON
                         </button>
                       </div>
                       {/* Copy */}
-                      <button onClick={handleCopy} title="Copy to clipboard"
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white bg-transparent hover:bg-white/8 border border-transparent hover:border-white/10 rounded-lg transition-all">
+                      <button
+                        onClick={handleCopy}
+                        title="Copy to clipboard"
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-[8px] transition-all"
+                        style={{
+                          background: "rgba(157,80,255,0.12)",
+                          border: "1px solid rgba(157,80,255,0.25)",
+                          color: copied ? "#B78AFF" : "rgba(255,255,255,0.8)",
+                        }}
+                      >
                         {copied ? (
-                          <><svg className="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg><span className="text-emerald-400">Copied!</span></>
+                          <>
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                            <span>Copied!</span>
+                          </>
                         ) : (
-                          <><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>Copy</>
+                          <>
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                            Copy
+                          </>
                         )}
                       </button>
                       {/* Share */}
                       <div className="relative">
-                        <button onClick={handleShare} title="Share"
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white bg-transparent hover:bg-white/8 border border-transparent hover:border-white/10 rounded-lg transition-all">
+                        <button
+                          onClick={handleShare}
+                          title="Share"
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-[8px] transition-all"
+                          style={{
+                            background: "rgba(157,80,255,0.12)",
+                            border: "1px solid rgba(157,80,255,0.25)",
+                            color: "rgba(255,255,255,0.8)",
+                          }}
+                        >
                           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
                           Share
                         </button>
                         <AnimatePresence>
                           {shareOpen && (
-                            <motion.div initial={{ opacity: 0, scale: 0.95, y: -4 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: -4 }} transition={{ duration: 0.12 }} onClick={(e) => e.stopPropagation()}
-                              className="absolute right-0 top-full mt-1.5 w-44 bg-[#0a0a1a] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden">
-                              <button onClick={() => handleShareVia("twitter")} className="flex items-center gap-2.5 w-full px-3 py-2.5 text-xs text-slate-300 hover:text-white hover:bg-white/5 transition-colors">
+                            <motion.div
+                              initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                              animate={{ opacity: 1, scale: 1, y: 0 }}
+                              exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                              transition={{ duration: 0.12 }}
+                              onClick={(e) => e.stopPropagation()}
+                              className="absolute right-0 top-full mt-1.5 w-44 shadow-2xl z-50 overflow-hidden"
+                              style={{
+                                background: "#0C0D11",
+                                border: "1px solid rgba(157,80,255,0.2)",
+                                borderRadius: 8,
+                              }}
+                            >
+                              <button onClick={() => handleShareVia("twitter")} className="flex items-center gap-2.5 w-full px-3 py-2.5 text-xs transition-colors" style={{ color: "rgba(255,255,255,0.7)" }} onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(157,80,255,0.08)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
                                 <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.256 5.626zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
                                 Share on X
                               </button>
-                              <button onClick={() => handleShareVia("linkedin")} className="flex items-center gap-2.5 w-full px-3 py-2.5 text-xs text-slate-300 hover:text-white hover:bg-white/5 transition-colors">
+                              <button onClick={() => handleShareVia("linkedin")} className="flex items-center gap-2.5 w-full px-3 py-2.5 text-xs transition-colors" style={{ color: "rgba(255,255,255,0.7)" }} onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(157,80,255,0.08)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
                                 <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" /></svg>
                                 Share on LinkedIn
                               </button>
-                              <div className="border-t border-white/10" />
-                              <button onClick={() => handleShareVia("copy")} className="flex items-center gap-2.5 w-full px-3 py-2.5 text-xs text-slate-300 hover:text-white hover:bg-white/5 transition-colors">
+                              <div style={{ borderTop: "1px solid rgba(157,80,255,0.1)" }} />
+                              <button onClick={() => handleShareVia("copy")} className="flex items-center gap-2.5 w-full px-3 py-2.5 text-xs transition-colors" style={{ color: "rgba(255,255,255,0.7)" }} onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(157,80,255,0.08)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                                 Copy content
                               </button>
@@ -586,43 +682,65 @@ export default function StreamingDrawer({ isOpen, isStreaming, content, onClose 
                       </div>
                       {/* Download */}
                       <div className="relative">
-                        <button onClick={(e) => { e.stopPropagation(); setDownloadOpen((p) => !p); }} title="Download"
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white bg-transparent hover:bg-white/8 border border-transparent hover:border-white/10 rounded-lg transition-all">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setDownloadOpen((p) => !p); }}
+                          title="Download"
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-[8px] transition-all"
+                          style={{
+                            background: "rgba(157,80,255,0.12)",
+                            border: "1px solid rgba(157,80,255,0.25)",
+                            color: "rgba(255,255,255,0.8)",
+                          }}
+                        >
                           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                           Download
-                          <svg className="w-3 h-3 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                          <svg className="w-3 h-3" style={{ color: "rgba(255,255,255,0.3)" }} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                         </button>
                         <AnimatePresence>
                           {downloadOpen && (
-                            <motion.div initial={{ opacity: 0, scale: 0.95, y: -4 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: -4 }} transition={{ duration: 0.12 }} onClick={(e) => e.stopPropagation()}
-                              className="absolute right-0 top-full mt-1.5 w-56 bg-[#0a0a1a] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden">
-                              <div className="px-3 py-1.5 border-b border-white/10">
-                                <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Export format</p>
+                            <motion.div
+                              initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                              animate={{ opacity: 1, scale: 1, y: 0 }}
+                              exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                              transition={{ duration: 0.12 }}
+                              onClick={(e) => e.stopPropagation()}
+                              className="absolute right-0 top-full mt-1.5 w-56 shadow-2xl z-50 overflow-hidden"
+                              style={{
+                                background: "#0C0D11",
+                                border: "1px solid rgba(157,80,255,0.2)",
+                                borderRadius: 8,
+                              }}
+                            >
+                              <div className="px-3 py-1.5" style={{ borderBottom: "1px solid rgba(157,80,255,0.1)" }}>
+                                <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "rgba(255,255,255,0.3)" }}>Export format</p>
                               </div>
-                              <button onClick={() => handleDownload("txt")} className="flex items-start gap-2.5 w-full px-3 py-2.5 text-xs text-slate-300 hover:text-white hover:bg-white/5 transition-colors">
+                              <button onClick={() => handleDownload("txt")} className="flex items-start gap-2.5 w-full px-3 py-2.5 text-xs transition-colors" style={{ color: "rgba(255,255,255,0.7)" }} onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(157,80,255,0.08)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
                                 <span className="text-base leading-none mt-px">&#x1F4C4;</span>
-                                <div><p className="font-medium">Plain Text (.txt)</p><p className="text-slate-500 text-[10px] mt-0.5">{viewMode === "clean" ? "Formatted text from Clean view" : "Raw JSON string"}</p></div>
+                                <div><p className="font-medium">Plain Text (.txt)</p><p className="text-[10px] mt-0.5" style={{ color: "rgba(255,255,255,0.3)" }}>{viewMode === "clean" ? "Formatted text from Clean view" : "Raw JSON string"}</p></div>
                               </button>
-                              <button onClick={() => handleDownload("csv")} className="flex items-start gap-2.5 w-full px-3 py-2.5 text-xs text-slate-300 hover:text-white hover:bg-white/5 transition-colors">
+                              <button onClick={() => handleDownload("csv")} className="flex items-start gap-2.5 w-full px-3 py-2.5 text-xs transition-colors" style={{ color: "rgba(255,255,255,0.7)" }} onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(157,80,255,0.08)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
                                 <span className="text-base leading-none mt-px">&#x1F4CA;</span>
-                                <div><p className="font-medium">Spreadsheet (.csv)</p><p className="text-slate-500 text-[10px] mt-0.5">All structured fields as best-practice columns</p></div>
+                                <div><p className="font-medium">Spreadsheet (.csv)</p><p className="text-[10px] mt-0.5" style={{ color: "rgba(255,255,255,0.3)" }}>All structured fields as columns</p></div>
                               </button>
-                              <button onClick={() => handleDownload("html")} className="flex items-start gap-2.5 w-full px-3 py-2.5 text-xs text-slate-300 hover:text-white hover:bg-white/5 transition-colors">
+                              <button onClick={() => handleDownload("html")} className="flex items-start gap-2.5 w-full px-3 py-2.5 text-xs transition-colors" style={{ color: "rgba(255,255,255,0.7)" }} onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(157,80,255,0.08)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
                                 <span className="text-base leading-none mt-px">&#x1F310;</span>
-                                <div><p className="font-medium">Embedded HTML (.html)</p><p className="text-slate-500 text-[10px] mt-0.5">{viewMode === "clean" ? "Ready to paste into WordPress / CMS" : "JSON inside &lt;pre&gt; block"}</p></div>
+                                <div><p className="font-medium">Embedded HTML (.html)</p><p className="text-[10px] mt-0.5" style={{ color: "rgba(255,255,255,0.3)" }}>{viewMode === "clean" ? "Ready to paste into CMS" : "JSON inside pre block"}</p></div>
                               </button>
                             </motion.div>
                           )}
                         </AnimatePresence>
                       </div>
-                      <div className="w-px h-4 bg-white/10 mx-1" />
+                      <div className="w-px h-4 mx-1" style={{ background: "rgba(157,80,255,0.15)" }} />
                     </>
                   )}
                   {/* Collapse button */}
                   <button
                     onClick={() => setCollapsed(true)}
                     title="Collapse panel"
-                    className="p-1.5 text-slate-500 hover:text-white transition-colors rounded-lg hover:bg-white/8"
+                    className="p-1.5 rounded-[6px] transition-colors"
+                    style={{ color: "rgba(255,255,255,0.3)" }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#9D50FF"; (e.currentTarget as HTMLButtonElement).style.background = "rgba(157,80,255,0.08)"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.3)"; (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
                     aria-label="Collapse panel"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -630,7 +748,14 @@ export default function StreamingDrawer({ isOpen, isStreaming, content, onClose 
                     </svg>
                   </button>
                   {/* Close button */}
-                  <button onClick={onClose} className="p-1.5 text-slate-500 hover:text-white transition-colors rounded-lg hover:bg-white/8" aria-label="Close panel">
+                  <button
+                    onClick={onClose}
+                    className="p-1.5 rounded-[6px] transition-colors"
+                    style={{ color: "rgba(255,255,255,0.3)" }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#fff"; (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.05)"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.3)"; (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+                    aria-label="Close panel"
+                  >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                   </button>
                 </div>
@@ -642,16 +767,34 @@ export default function StreamingDrawer({ isOpen, isStreaming, content, onClose 
                 {isStreaming && !content && (
                   <div className="flex flex-col items-center justify-center py-16 px-8 gap-6">
                     <div className="relative">
-                      <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-                        <svg className="w-8 h-8 text-emerald-400 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <div
+                        className="w-16 h-16 rounded-[8px] flex items-center justify-center"
+                        style={{
+                          background: "rgba(157,80,255,0.1)",
+                          border: "1px solid rgba(157,80,255,0.25)",
+                        }}
+                      >
+                        <svg
+                          className="w-8 h-8"
+                          style={{ color: "#9D50FF", animation: "oracle-pulse 2s ease-in-out infinite" }}
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                         </svg>
                       </div>
-                      <div className="absolute inset-0 rounded-2xl border border-emerald-500/30 animate-ping opacity-30" />
+                      <div
+                        className="absolute inset-0 rounded-[8px]"
+                        style={{
+                          border: "1px solid rgba(157,80,255,0.3)",
+                          animation: "violet-ping 1.5s ease-in-out infinite",
+                        }}
+                      />
                     </div>
                     <div className="text-center space-y-1">
-                      <p className="text-sm font-medium text-slate-200">Analyzing content…</p>
-                      <p className="text-xs text-slate-500">AI is processing your transcript</p>
+                      <p className="text-sm font-medium text-white">Synthesizing content…</p>
+                      <p className="text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>AI is processing your transcript</p>
                     </div>
                     <div className="w-full max-w-xs space-y-2.5">
                       {SKELETON_WIDTHS.slice(0, 6).map((w, i) => (
@@ -661,31 +804,53 @@ export default function StreamingDrawer({ isOpen, isStreaming, content, onClose 
                   </div>
                 )}
                 {content && (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }} className="p-6">
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.2 }}
+                    className="p-6"
+                  >
                     {viewMode === "clean" ? <CleanContentView content={content} /> : (
-                      <pre className="text-slate-300 text-[13px] leading-[1.7] whitespace-pre-wrap font-mono">{content}</pre>
+                      <pre className="text-sm leading-[1.7] whitespace-pre-wrap font-mono" style={{ color: "rgba(255,255,255,0.8)" }}>
+                        {content}
+                      </pre>
                     )}
-                    {isStreaming && <span className="inline-block w-0.5 h-4 bg-emerald-400 animate-pulse ml-0.5 align-middle" />}
+                    {isStreaming && (
+                      <span
+                        className="inline-block w-0.5 h-4 ml-0.5 align-middle"
+                        style={{ background: "#9D50FF", animation: "oracle-pulse 1s ease-in-out infinite" }}
+                      />
+                    )}
                   </motion.div>
                 )}
               </div>
 
               {/* Footer status bar */}
-              <div className="px-4 py-2.5 border-t border-white/10 bg-white/[0.02] flex items-center justify-between">
+              <div
+                className="px-4 py-2.5 flex items-center justify-between"
+                style={{
+                  borderTop: "1px solid rgba(157,80,255,0.1)",
+                  background: "rgba(18,20,28,0.4)",
+                }}
+              >
                 <div className="flex items-center gap-3">
                   {!isStreaming && content ? (
-                    <span className="text-xs text-emerald-500 flex items-center gap-1.5 font-medium">
+                    <span className="text-xs flex items-center gap-1.5 font-medium" style={{ color: "#B78AFF" }}>
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
                       Generation complete
                     </span>
                   ) : isStreaming ? (
-                    <span className="text-xs text-yellow-400 flex items-center gap-1.5">
+                    <span className="text-xs flex items-center gap-1.5" style={{ color: "#9D50FF" }}>
                       <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                       {content ? "Streaming…" : "Analyzing…"}
                     </span>
                   ) : null}
                 </div>
-                {content && <span className="text-xs text-slate-500 font-mono">{content.length.toLocaleString()} chars</span>}
+                {content && (
+                  <span className="text-xs font-mono" style={{ color: "rgba(255,255,255,0.25)" }}>
+                    {content.length.toLocaleString()} chars
+                  </span>
+                )}
               </div>
             </div>
           )}

@@ -26,28 +26,26 @@ export default function Button({
   };
 
   const variantClasses = {
-    primary:
-      "bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-500/50",
-    secondary:
-      "bg-white/10 hover:bg-white/15 text-white border border-white/10",
+    primary: "oracle-btn-primary",
+    secondary: "oracle-btn-secondary",
     outline:
-      "bg-transparent border border-white/15 text-slate-300 hover:text-white hover:border-white/30 hover:bg-white/5",
+      "bg-transparent border border-[rgba(157,80,255,0.25)] text-[rgba(255,255,255,0.7)] hover:text-white hover:border-[rgba(157,80,255,0.5)] hover:bg-[rgba(157,80,255,0.08)] transition-all duration-300",
     ghost:
-      "bg-transparent text-slate-400 hover:text-white hover:bg-white/5",
+      "bg-transparent text-[rgba(255,255,255,0.5)] hover:text-white hover:bg-[rgba(157,80,255,0.08)] transition-all duration-300",
     gradient:
-      "bg-gradient-to-r from-emerald-600 to-emerald-400 text-white border-0 hover:opacity-90",
+      "bg-gradient-to-r from-[#9D50FF] to-[#BD00FF] text-white border-0 hover:opacity-90 transition-all duration-300",
   };
 
   return (
     <button
       disabled={disabled}
       className={`
-        inline-flex items-center justify-center gap-2 font-semibold rounded-xl
-        transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/50
-        active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100
+        inline-flex items-center justify-center gap-2 font-semibold rounded-[8px]
+        focus:outline-none focus:ring-2 focus:ring-[rgba(157,80,255,0.5)]
+        disabled:opacity-45 disabled:cursor-not-allowed
         ${sizeClasses[size]}
         ${variantClasses[variant]}
-        ${glow ? "shadow-glow hover:shadow-glow-lg" : ""}
+        ${glow ? "oracle-glow" : ""}
         ${className}
       `}
       {...props}

@@ -8,24 +8,17 @@ import GenerationSettings from "./GenerationSettings";
 import type { GenerationSettingsValue } from "./GenerationSettings";
 import StreamingDrawer from "./StreamingDrawer";
 import PurchaseModal from "./PurchaseModal";
-import SkeletonLoader from "./SkeletonLoader";
 import LoadingProgress from "./LoadingProgress";
 import DashboardFaq from "./DashboardFaq";
-import GradientOrbs from "@/components/effects/GradientOrbs";
 import ShimmerButton from "@/components/effects/ShimmerButton";
-import Navbar from "@/components/landing/Navbar";
-import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import ErrorState from "@/components/ui/ErrorState";
+import OracleSidebar from "./OracleSidebar";
+import OracleTopbar from "./OracleTopbar";
+import AiAccuracyIndicator from "./AiAccuracyIndicator";
+import FloatingTerminal from "./FloatingTerminal";
 import { streamGenerateContent, listGenerations, getGeneration, SymbolPackage, GenerationHistoryItem } from "@/lib/api";
 
 type Step = 1 | 2 | 3 | 4;
-
-const STEPS = [
-  { num: 1, label: "Enter URL" },
-  { num: 2, label: "Edit Transcript" },
-  { num: 3, label: "Configure" },
-  { num: 4, label: "Result" },
-];
 
 const slideVariants = {
   enter: { opacity: 0, x: 30 },
@@ -72,6 +65,9 @@ export default function Dashboard() {
   const MOCK_USER_ID = "mock-user-123";
   // Delay after stream end to allow backend to finish saving the generation
   const HISTORY_REFRESH_DELAY_MS = 1500;
+
+  // Floating terminal state
+  const [terminalOpen, setTerminalOpen] = useState(false);
 
   // Fetch the current generation counter from the backend on mount
   useEffect(() => {
@@ -122,6 +118,7 @@ export default function Dashboard() {
     setStreamedContent("");
     setDrawerOpen(true);
     setIsStreaming(true);
+    setTerminalOpen(true);
 
     const controller = streamGenerateContent(
       {
@@ -184,6 +181,7 @@ export default function Dashboard() {
     setDrawerOpen(false);
     setIsStreaming(false);
     setPurchaseModalOpen(false);
+    setTerminalOpen(false);
   };
 
   const handlePurchase = (pkg: SymbolPackage) => {
@@ -210,362 +208,462 @@ export default function Dashboard() {
     }
   };
 
+  // Allow navigating backward via sidebar step clicks (but not forward past current)
+  const handleSidebarStepClick = (s: Step) => {
+    if (s <= step) setStep(s);
+  };
+
+  const stepTitles: Record<Step, string> = {
+    1: "Enter YouTube URL",
+    2: "Edit Transcript",
+    3: "Configure Output",
+    4: "Generated Content",
+  };
+
+  const stepDescriptions: Record<Step, string> = {
+    1: "Paste a YouTube link to extract the transcript automatically.",
+    2: "Review and edit the extracted transcript before generating content.",
+    3: "Choose your content format, tone, language, and length.",
+    4: "Your AI-generated content is ready. Export or refine it.",
+  };
+
+  // Bottom padding when floating terminal is visible
+  const TERMINAL_HEIGHT = 200;
+  const bottomPadding = isStreaming || terminalOpen ? TERMINAL_HEIGHT : 0;
+
   return (
-    <div className="min-h-screen bg-[#030014] relative overflow-x-hidden">
-      <GradientOrbs />
-      <Navbar variant="dashboard" charsRemaining={charsRemaining} onStartOver={handleStartOver} />
+    <div
+      className="min-h-screen"
+      style={{ background: "#08090A", fontFamily: "Inter, sans-serif" }}
+    >
+      {/* ── Fixed sidebar ───────────────────────────────── */}
+      <OracleSidebar
+        step={step}
+        onStepClick={handleSidebarStepClick}
+        onStartOver={handleStartOver}
+      />
 
-      <div className="pt-16">
-        <Breadcrumbs
-          items={[{ label: "Home", href: "/" }, { label: "Dashboard" }]}
-          className="max-w-5xl mx-auto px-4 sm:px-6 py-3"
-        />
+      {/* ── Fixed topbar ────────────────────────────────── */}
+      <OracleTopbar charsRemaining={charsRemaining} onStartOver={handleStartOver} />
 
-        {/* Main layout — central content + streaming drawer */}
-        <div className="flex items-start gap-0 transition-all duration-350 overflow-x-hidden">
-          <main className="relative z-10 flex-1 min-w-0 px-4 sm:px-6 pb-10 pt-2 max-w-5xl mx-auto w-full overflow-x-hidden">
-            {/* Stats banner */}
+      {/* ── Main content area ───────────────────────────── */}
+      <div
+        className="flex items-start"
+        style={{
+          marginLeft: 260,
+          paddingTop: 72,
+          minHeight: "100vh",
+          paddingBottom: bottomPadding,
+        }}
+      >
+        {/* Central panel */}
+        <main
+          className="flex-1 min-w-0 overflow-x-hidden"
+          style={{ padding: "32px 32px 24px" }}
+        >
+          {/* ── Stats cards (step 1 hero area) ─────────── */}
+          {step === 1 && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="grid grid-cols-3 gap-4 mb-6"
+              className="grid grid-cols-3 gap-4 mb-8 max-w-2xl"
             >
-              <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+              {/* Videos processed */}
+              <div
+                className="oracle-glass p-4 animate-oracle-breathe"
+                style={{ boxShadow: "0 0 30px rgba(157,80,255,0.06)" }}
+              >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div
+                    className="w-9 h-9 rounded-[8px] flex items-center justify-center flex-shrink-0"
+                    style={{ background: "rgba(157,80,255,0.12)" }}
+                  >
+                    <svg className="w-4 h-4" style={{ color: "#9D50FF" }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
                   <div>
                     <motion.p
                       key={videosProcessed}
-                      initial={{ scale: 1.15, color: "#34D399" }}
+                      initial={{ scale: 1.15, color: "#9D50FF" }}
                       animate={{ scale: 1, color: "#ffffff" }}
                       transition={{ duration: 0.5, ease: "easeOut" }}
-                      className="text-2xl font-bold"
+                      className="text-xl font-bold font-display"
                     >
                       {videosProcessed.toLocaleString()}
                     </motion.p>
-                    <p className="text-xs text-slate-500">Videos Processed</p>
+                    <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.4)" }}>Videos Processed</p>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+              {/* Avg time */}
+              <div className="oracle-glass p-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div
+                    className="w-9 h-9 rounded-[8px] flex items-center justify-center flex-shrink-0"
+                    style={{ background: "rgba(157,80,255,0.08)" }}
+                  >
+                    <svg className="w-4 h-4" style={{ color: "rgba(157,80,255,0.7)" }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-white">~30s</p>
-                    <p className="text-xs text-slate-500">Avg Processing Time</p>
+                    <p className="text-xl font-bold font-display text-white">~30s</p>
+                    <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.4)" }}>Avg Process Time</p>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+              {/* Success rate */}
+              <div className="oracle-glass p-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div
+                    className="w-9 h-9 rounded-[8px] flex items-center justify-center flex-shrink-0"
+                    style={{ background: "rgba(183,138,255,0.1)" }}
+                  >
+                    <svg className="w-4 h-4" style={{ color: "#B78AFF" }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                     </svg>
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-white">98.5%</p>
-                    <p className="text-xs text-slate-500">Success Rate</p>
+                    <p className="text-xl font-bold font-display text-white">98.5%</p>
+                    <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.4)" }}>Success Rate</p>
                   </div>
                 </div>
               </div>
             </motion.div>
+          )}
 
-            {/* Step indicators */}
-            <div className="mb-10">
-              <div className="h-1 bg-white/5 rounded-full mb-4 overflow-hidden">
-                <motion.div
-                  className="h-full rounded-full"
-                  animate={{ width: `${((step - 1) / (STEPS.length - 1)) * 100}%` }}
-                  transition={{ duration: 0.4, ease: "easeOut" }}
-                  style={{ background: "linear-gradient(90deg, #10B981, #059669)" }}
-                />
-              </div>
-              <div className="flex items-center gap-2 overflow-x-auto pb-1">
-                {STEPS.map((s, i) => (
-                  <div key={s.num} className="flex items-center gap-2 flex-shrink-0">
-                    <div
-                      className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 ${
-                        step === s.num
-                          ? "border text-emerald-300"
-                          : step > s.num
-                          ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
-                          : "bg-white/5 border border-white/10 text-slate-500"
-                      }`}
-                      style={
-                        step === s.num
-                          ? {
-                              background: "linear-gradient(135deg, rgba(16,185,129,0.15), rgba(5,150,105,0.1))",
-                              borderColor: "rgba(16,185,129,0.4)",
-                            }
-                          : {}
-                      }
+          {/* ── Step header ─────────────────────────────── */}
+          <div className="flex items-start justify-between mb-6 max-w-2xl">
+            <div>
+              <h2
+                className="font-display font-bold text-2xl text-white mb-1 tracking-tight"
+                style={{ letterSpacing: "-0.03em" }}
+              >
+                {stepTitles[step]}
+              </h2>
+              <p className="text-sm" style={{ color: "rgba(255,255,255,0.5)" }}>
+                {stepDescriptions[step]}
+              </p>
+            </div>
+            {/* AI Accuracy indicator */}
+            <AiAccuracyIndicator step={step} total={4} size={56} />
+          </div>
+
+          {/* ── Step progress bar ───────────────────────── */}
+          <div className="max-w-2xl mb-8">
+            <div
+              className="h-[3px] rounded-full overflow-hidden mb-3"
+              style={{ background: "rgba(157,80,255,0.12)" }}
+            >
+              <motion.div
+                className="h-full rounded-full"
+                animate={{ width: `${((step - 1) / 3) * 100}%` }}
+                transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                style={{ background: "linear-gradient(90deg, #9D50FF, #BD00FF)" }}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              {([1, 2, 3, 4] as Step[]).map((s, i) => {
+                const labels = ["URL", "Transcript", "Configure", "Result"];
+                const isActive = s === step;
+                const isDone = s < step;
+                return (
+                  <div key={s} className="flex items-center gap-2">
+                    <button
+                      onClick={() => s <= step && setStep(s)}
+                      disabled={s > step}
+                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] text-xs font-semibold transition-all duration-300"
+                      style={{
+                        background: isActive
+                          ? "rgba(157,80,255,0.15)"
+                          : isDone
+                          ? "rgba(157,80,255,0.08)"
+                          : "rgba(255,255,255,0.04)",
+                        border: isActive
+                          ? "1px solid rgba(157,80,255,0.4)"
+                          : isDone
+                          ? "1px solid rgba(157,80,255,0.2)"
+                          : "1px solid rgba(255,255,255,0.06)",
+                        color: isActive
+                          ? "#9D50FF"
+                          : isDone
+                          ? "rgba(157,80,255,0.7)"
+                          : "rgba(255,255,255,0.3)",
+                        cursor: s > step ? "default" : "pointer",
+                      }}
                     >
                       <span
-                        className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
-                          step > s.num
-                            ? "bg-emerald-500 text-white"
-                            : step === s.num
-                            ? "text-white"
-                            : "bg-white/10 text-slate-500"
-                        }`}
-                        style={
-                          step === s.num
-                            ? { background: "linear-gradient(135deg, #10B981, #059669)" }
-                            : {}
-                        }
-                      >
-                        {step > s.num ? "✓" : s.num}
-                      </span>
-                      <span className="hidden sm:block">{s.label}</span>
-                    </div>
-                    {i < STEPS.length - 1 && (
-                      <div
-                        className="h-px w-6 transition-all duration-500"
+                        className="w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold"
                         style={{
-                          background:
-                            step > s.num
-                              ? "linear-gradient(90deg, #10B981, #059669)"
-                              : "rgba(255,255,255,0.08)",
+                          background: isActive ? "#9D50FF" : isDone ? "rgba(157,80,255,0.3)" : "rgba(255,255,255,0.08)",
+                          color: isActive || isDone ? "#fff" : "rgba(255,255,255,0.3)",
+                        }}
+                      >
+                        {isDone ? "✓" : s}
+                      </span>
+                      <span className="hidden sm:block">{labels[i]}</span>
+                    </button>
+                    {i < 3 && (
+                      <div
+                        className="h-px w-4 transition-all duration-500"
+                        style={{
+                          background: s < step ? "rgba(157,80,255,0.4)" : "rgba(255,255,255,0.06)",
                         }}
                       />
                     )}
                   </div>
-                ))}
-              </div>
+                );
+              })}
             </div>
-
-            {/* Step content */}
-            <div className="glass-card p-6 sm:p-8 min-h-[300px] relative">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={step}
-                  variants={slideVariants}
-                  initial="enter"
-                  animate="center"
-                  exit="exit"
-                  transition={{ duration: 0.25, ease: "easeOut" }}
-                >
-                  {step === 1 && <UrlInput onExtract={handleExtract} />}
-
-                  {step === 2 && (
-                    <div className="space-y-5">
-                      <SubtitleEditor transcript={transcript} onChange={setTranscript} />
-                      <div className="flex justify-between pt-2">
-                        <button
-                          onClick={() => setStep(1)}
-                          className="text-sm text-slate-500 hover:text-white transition-colors"
-                        >
-                          ← Back
-                        </button>
-                        <ShimmerButton size="md" onClick={() => setStep(3)} disabled={!transcript.trim()}>
-                          Next: Configure →
-                        </ShimmerButton>
-                      </div>
-                    </div>
-                  )}
-
-                  {step === 3 && (
-                    <div className="space-y-6">
-                      {errorCode ? (
-                        <ErrorState
-                          statusCode={errorCode}
-                          onRetry={() => {
-                            setErrorCode(null);
-                            handleGenerate();
-                          }}
-                        />
-                      ) : (
-                        <>
-                          <GenerationSettings onSettingsChange={setSettings} videoUrl={url} transcriptCharCount={transcript.length} />
-
-                          {error && (
-                            <motion.p
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3"
-                            >
-                              ⚠️ {error}
-                            </motion.p>
-                          )}
-
-                          {loading && (
-                            <div className="mt-6">
-                              <LoadingProgress
-                                message="🪄 Generating your content with AI…"
-                                warningMessage="Generating your content... Please don't close this tab."
-                              />
-                              {!streamedContent && (
-                                <div className="mt-4">
-                                  <SkeletonLoader />
-                                </div>
-                              )}
-                            </div>
-                          )}
-
-                          <div className="flex justify-between pt-2">
-                            <button
-                              onClick={() => setStep(2)}
-                              className="text-sm text-slate-500 hover:text-white transition-colors"
-                            >
-                              ← Back
-                            </button>
-                            <ShimmerButton size="md" onClick={handleGenerate} disabled={loading}>
-                              {loading ? "Generating..." : "Generate Content →"}
-                            </ShimmerButton>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  )}
-
-                  {step === 4 && (
-                    <div className="space-y-5">
-                      <div className="text-center py-8">
-                        <div className="w-16 h-16 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center mx-auto mb-4">
-                          <svg className="w-8 h-8 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                          </svg>
-                        </div>
-                        <h3 className="text-lg font-semibold text-white mb-2">Content Generated!</h3>
-                        <p className="text-sm text-slate-400 mb-4">
-                          Your content is ready in the panel on the right.{" "}
-                          {!drawerOpen && (
-                            <button
-                              onClick={() => setDrawerOpen(true)}
-                              className="text-emerald-400 hover:text-emerald-300 underline"
-                            >
-                              Open drawer
-                            </button>
-                          )}
-                        </p>
-                        <p className="text-xs text-slate-600">
-                          {generatedContent.length.toLocaleString()} characters generated
-                        </p>
-                      </div>
-                      <div className="flex justify-between pt-2">
-                        <button
-                          onClick={() => setStep(3)}
-                          className="text-sm text-slate-500 hover:text-white transition-colors"
-                        >
-                          ← Back to Settings
-                        </button>
-                        <button
-                          onClick={handleStartOver}
-                          className="text-sm text-emerald-400 hover:text-emerald-300 transition-colors"
-                        >
-                          + New Content
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </motion.div>
-              </AnimatePresence>
-            </div>
-
-            {/* Quick tips */}
-            {!loading && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
-                className="mt-8 bg-gradient-to-r from-slate-800/50 to-slate-900/50 border border-white/5 rounded-xl p-6"
-              >
-                <h3 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
-                  <span>💡</span> Pro Tips
-                </h3>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="flex gap-3">
-                    <span className="text-emerald-400">→</span>
-                    <div>
-                      <p className="text-sm text-slate-300 font-medium">Choose the right language</p>
-                      <p className="text-xs text-slate-500 mt-1">Manual transcripts are more accurate than auto-generated ones</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-3">
-                    <span className="text-emerald-400">→</span>
-                    <div>
-                      <p className="text-sm text-slate-300 font-medium">Videos with good audio work best</p>
-                      <p className="text-xs text-slate-500 mt-1">Clear speech = better auto-generated captions</p>
-                    </div>
-                  </div>
-
-                  {step === 2 && (
-                    <>
-                      <div className="flex gap-3">
-                        <span>✂️</span>
-                        <div>
-                          <p className="text-sm text-slate-300 font-medium">Trim filler words for cleaner output</p>
-                          <p className="text-xs text-slate-500 mt-1">Removing &quot;um&quot;, &quot;uh&quot;, and off-topic tangents helps the AI focus on what matters</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-3">
-                        <span>🎯</span>
-                        <div>
-                          <p className="text-sm text-slate-300 font-medium">Add context for visuals or demos</p>
-                          <p className="text-xs text-slate-500 mt-1">Brief notes about charts or on-screen demos make the generated article much richer</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-3">
-                        <span>🏷️</span>
-                        <div>
-                          <p className="text-sm text-slate-300 font-medium">Mark your key points</p>
-                          <p className="text-xs text-slate-500 mt-1">Highlight or label the most important facts — the AI will turn them into headings and strong copy</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-3">
-                        <span>🌐</span>
-                        <div>
-                          <p className="text-sm text-slate-300 font-medium">Keep it in one language</p>
-                          <p className="text-xs text-slate-500 mt-1">Mixed-language transcripts can confuse the AI — edit to a single language before generating</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-3">
-                        <span>📏</span>
-                        <div>
-                          <p className="text-sm text-slate-300 font-medium">Ideal length: 500–3,000 words</p>
-                          <p className="text-xs text-slate-500 mt-1">Shorter transcripts may produce thin content; longer ones give the AI more material to work with</p>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </main>
-
-          {/* Streaming Drawer — right side, fixed viewport height */}
-          <div className="sticky top-16 flex-shrink-0 self-start" style={{ height: "calc(100vh - 64px)" }}>
-            <StreamingDrawer
-              isOpen={drawerOpen}
-              isStreaming={isStreaming}
-              content={streamedContent || generatedContent}
-              onClose={() => setDrawerOpen(false)}
-            />
           </div>
-        </div>
 
-        {/* Last Results — history section */}
-        {(history.length > 0 || historyLoading) && (
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 pb-12 mt-4">
-            <div className="bg-gradient-to-r from-slate-800/50 to-slate-900/50 border border-white/5 rounded-xl p-6">
-              <h3 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
-                <span>🕐</span> Last Results
+          {/* ── Step content card ───────────────────────── */}
+          <div
+            className="oracle-glass max-w-2xl"
+            style={{ padding: "28px 28px 24px", boxShadow: "0 0 30px rgba(157,80,255,0.07)" }}
+          >
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={step}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+              >
+                {/* Step 1 — URL Input */}
+                {step === 1 && <UrlInput onExtract={handleExtract} />}
+
+                {/* Step 2 — Transcript editor */}
+                {step === 2 && (
+                  <div className="space-y-5">
+                    <SubtitleEditor transcript={transcript} onChange={setTranscript} />
+                    <div className="flex justify-between pt-2">
+                      <button
+                        onClick={() => setStep(1)}
+                        className="text-sm transition-colors duration-300"
+                        style={{ color: "rgba(255,255,255,0.4)" }}
+                        onMouseEnter={(e) => (e.currentTarget.style.color = "#fff")}
+                        onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.4)")}
+                      >
+                        ← Back
+                      </button>
+                      <ShimmerButton size="md" onClick={() => setStep(3)} disabled={!transcript.trim()}>
+                        Next: Configure →
+                      </ShimmerButton>
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 3 — Generation settings */}
+                {step === 3 && (
+                  <div className="space-y-6">
+                    {errorCode ? (
+                      <ErrorState
+                        statusCode={errorCode}
+                        onRetry={() => {
+                          setErrorCode(null);
+                          handleGenerate();
+                        }}
+                      />
+                    ) : (
+                      <>
+                        <GenerationSettings
+                          onSettingsChange={setSettings}
+                          videoUrl={url}
+                          transcriptCharCount={transcript.length}
+                        />
+
+                        {error && (
+                          <motion.p
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="text-sm rounded-[8px] px-4 py-3"
+                            style={{
+                              color: "#ff6b6b",
+                              background: "rgba(255,59,48,0.08)",
+                              border: "1px solid rgba(255,59,48,0.2)",
+                            }}
+                          >
+                            ⚠️ {error}
+                          </motion.p>
+                        )}
+
+                        <div className="flex justify-between pt-2">
+                          <button
+                            onClick={() => setStep(2)}
+                            className="text-sm transition-colors duration-300"
+                            style={{ color: "rgba(255,255,255,0.4)" }}
+                            onMouseEnter={(e) => (e.currentTarget.style.color = "#fff")}
+                            onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.4)")}
+                          >
+                            ← Back
+                          </button>
+                          <ShimmerButton
+                            size="md"
+                            onClick={handleGenerate}
+                            disabled={loading}
+                            className="oracle-btn-generate"
+                          >
+                            {loading ? "Generating..." : "⚡ Generate Content"}
+                          </ShimmerButton>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {/* Step 4 — Result */}
+                {step === 4 && (
+                  <div className="space-y-5">
+                    <div className="text-center py-8">
+                      <div
+                        className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 animate-oracle-breathe"
+                        style={{
+                          background: "rgba(157,80,255,0.12)",
+                          border: "1px solid rgba(157,80,255,0.3)",
+                        }}
+                      >
+                        <svg className="w-8 h-8" style={{ color: "#9D50FF" }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                      <h3 className="text-lg font-semibold font-display text-white mb-2">
+                        Content Generated!
+                      </h3>
+                      <p className="text-sm mb-4" style={{ color: "rgba(255,255,255,0.5)" }}>
+                        Your content is ready in the panel on the right.{" "}
+                        {!drawerOpen && (
+                          <button
+                            onClick={() => setDrawerOpen(true)}
+                            className="underline transition-colors"
+                            style={{ color: "#9D50FF" }}
+                          >
+                            Open output panel
+                          </button>
+                        )}
+                      </p>
+                      <p className="text-xs" style={{ color: "rgba(255,255,255,0.25)" }}>
+                        {generatedContent.length.toLocaleString()} characters generated
+                      </p>
+                    </div>
+                    <div className="flex justify-between pt-2">
+                      <button
+                        onClick={() => setStep(3)}
+                        className="text-sm transition-colors duration-300"
+                        style={{ color: "rgba(255,255,255,0.4)" }}
+                        onMouseEnter={(e) => (e.currentTarget.style.color = "#fff")}
+                        onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.4)")}
+                      >
+                        ← Back to Settings
+                      </button>
+                      <button
+                        onClick={handleStartOver}
+                        className="text-sm font-semibold transition-colors"
+                        style={{ color: "#9D50FF" }}
+                      >
+                        + New Content
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          {/* ── Pro tips ────────────────────────────────── */}
+          {!loading && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="max-w-2xl mt-6"
+              style={{
+                background: "rgba(12,13,17,0.6)",
+                border: "1px solid rgba(157,80,255,0.08)",
+                borderRadius: 8,
+                padding: "20px 24px",
+              }}
+            >
+              <h3
+                className="text-xs font-semibold mb-4 flex items-center gap-2"
+                style={{ color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.08em" }}
+              >
+                <span>💡</span> Pro Tips
+              </h3>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="flex gap-3">
+                  <span style={{ color: "#9D50FF" }}>→</span>
+                  <div>
+                    <p className="text-sm font-medium text-white">Choose the right language</p>
+                    <p className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.35)" }}>
+                      Manual transcripts are more accurate than auto-generated ones
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <span style={{ color: "#9D50FF" }}>→</span>
+                  <div>
+                    <p className="text-sm font-medium text-white">Videos with good audio work best</p>
+                    <p className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.35)" }}>
+                      Clear speech = better auto-generated captions
+                    </p>
+                  </div>
+                </div>
+                {step === 2 && (
+                  <>
+                    <div className="flex gap-3">
+                      <span>✂️</span>
+                      <div>
+                        <p className="text-sm font-medium text-white">Trim filler words</p>
+                        <p className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.35)" }}>
+                          Removing &quot;um&quot;, &quot;uh&quot; helps the AI focus on what matters
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-3">
+                      <span>📏</span>
+                      <div>
+                        <p className="text-sm font-medium text-white">Ideal length: 500–3,000 words</p>
+                        <p className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.35)" }}>
+                          Shorter transcripts may produce thin content
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {/* ── History section ─────────────────────────── */}
+          {(history.length > 0 || historyLoading) && (
+            <div
+              className="max-w-2xl mt-6"
+              style={{
+                background: "rgba(12,13,17,0.6)",
+                border: "1px solid rgba(157,80,255,0.08)",
+                borderRadius: 8,
+                padding: "20px 24px",
+              }}
+            >
+              <h3
+                className="text-xs font-semibold mb-4 flex items-center gap-2"
+                style={{ color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.08em" }}
+              >
+                <span>🕐</span> Recent Results
               </h3>
               {historyLoading ? (
                 <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
                   {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-16 bg-white/5 rounded-lg animate-pulse" />
+                    <div
+                      key={i}
+                      className="h-16 rounded-[8px] animate-pulse"
+                      style={{ background: "rgba(157,80,255,0.05)" }}
+                    />
                   ))}
                 </div>
               ) : (
@@ -574,22 +672,41 @@ export default function Dashboard() {
                     <button
                       key={item.id}
                       onClick={() => handleHistoryItemClick(item)}
-                      className="text-left p-3 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/15 transition-all group"
+                      className="text-left p-3 rounded-[8px] transition-all duration-300 group"
+                      style={{
+                        background: "rgba(157,80,255,0.04)",
+                        border: "1px solid rgba(157,80,255,0.1)",
+                      }}
+                      onMouseEnter={(e) => {
+                        (e.currentTarget as HTMLButtonElement).style.background = "rgba(157,80,255,0.1)";
+                        (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(157,80,255,0.25)";
+                      }}
+                      onMouseLeave={(e) => {
+                        (e.currentTarget as HTMLButtonElement).style.background = "rgba(157,80,255,0.04)";
+                        (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(157,80,255,0.1)";
+                      }}
                     >
                       <div className="flex items-start gap-2">
                         <span className="text-base flex-shrink-0 mt-0.5">
                           {item.content_type === "seo_article" ? "📄" : item.content_type === "linkedin_post" ? "💼" : item.content_type === "video_recap" ? "🎬" : "🐦"}
                         </span>
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-slate-200 truncate group-hover:text-white transition-colors">
+                          <p
+                            className="text-sm font-medium truncate text-white transition-colors"
+                          >
                             {item.title || "Untitled"}
                           </p>
                           {item.video_url && (
-                            <p className="text-xs text-slate-500 truncate mt-0.5">{item.video_url}</p>
+                            <p className="text-xs truncate mt-0.5" style={{ color: "rgba(255,255,255,0.3)" }}>
+                              {item.video_url}
+                            </p>
                           )}
-                          <p className="text-[10px] text-slate-600 mt-1">
-                            {new Date(item.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
-                          </p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <p className="text-[10px]" style={{ color: "rgba(255,255,255,0.2)" }}>
+                              {new Date(item.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                            </p>
+                            <span className="oracle-chip text-[9px]">Completed</span>
+                          </div>
                         </div>
                       </div>
                     </button>
@@ -597,12 +714,33 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* SEO FAQ section */}
-        <DashboardFaq />
+          {/* SEO FAQ */}
+          <div className="max-w-2xl">
+            <DashboardFaq />
+          </div>
+        </main>
+
+        {/* ── Streaming Drawer — right side ───────────────── */}
+        <div className="sticky flex-shrink-0 self-start" style={{ top: 72, height: "calc(100vh - 72px)" }}>
+          <StreamingDrawer
+            isOpen={drawerOpen}
+            isStreaming={isStreaming}
+            content={streamedContent || generatedContent}
+            onClose={() => setDrawerOpen(false)}
+          />
+        </div>
       </div>
+
+      {/* ── Floating terminal (synthesis console) ───────── */}
+      {(isStreaming || terminalOpen) && (
+        <FloatingTerminal
+          isStreaming={isStreaming}
+          isOpen={terminalOpen}
+          onToggle={() => setTerminalOpen((o) => !o)}
+        />
+      )}
 
       {/* Purchase Modal */}
       <PurchaseModal

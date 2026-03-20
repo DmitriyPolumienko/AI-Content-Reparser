@@ -111,7 +111,7 @@ export default function UrlInput({ onExtract }: UrlInputProps) {
     >
       <div>
         <div className="flex items-center justify-between mb-2">
-          <label className="block text-sm font-medium text-slate-300">
+          <label className="block text-sm font-medium text-white">
             YouTube Video URL
           </label>
           {/* Tooltip trigger */}
@@ -149,7 +149,7 @@ export default function UrlInput({ onExtract }: UrlInputProps) {
           </div>
         </div>
 
-        <div className="flex gap-3">
+      <div className="flex gap-3">
           <div className="flex-1 relative flex items-center">
             {/* YouTube icon */}
             <div className="absolute left-3 flex items-center pointer-events-none">
@@ -162,8 +162,21 @@ export default function UrlInput({ onExtract }: UrlInputProps) {
               value={url}
               onChange={(e) => handleUrlChange(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && urlValid && e.currentTarget.blur()}
-              placeholder="https://youtube.com/watch?v=..."
-              className="w-full bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/60 focus:ring-2 focus:ring-emerald-500/20 transition-all duration-200 py-3 pl-10 pr-4 text-sm"
+              placeholder="Paste YouTube URL here..."
+              className="w-full text-white placeholder-[rgba(255,255,255,0.3)] focus:outline-none transition-all duration-300 py-3 pl-10 pr-4 text-sm"
+              style={{
+                background: "rgba(18,20,28,0.6)",
+                border: "1px solid rgba(157,80,255,0.15)",
+                borderRadius: 8,
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = "rgba(157,80,255,0.6)";
+                e.currentTarget.style.boxShadow = "0 0 0 3px rgba(157,80,255,0.12)";
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = "rgba(157,80,255,0.15)";
+                e.currentTarget.style.boxShadow = "none";
+              }}
             />
           </div>
         </div>
@@ -223,18 +236,25 @@ export default function UrlInput({ onExtract }: UrlInputProps) {
         />
       )}
 
-      {/* Helper text */}
+        {/* Helper text */}
       {!loading && (
         <div className="space-y-2">
-          <div className="bg-emerald-500/5 border border-emerald-500/15 rounded-xl p-4">
-            <p className="text-xs text-slate-400 leading-relaxed">
-              <span className="text-emerald-400 font-medium">How it works:</span> Paste a YouTube URL above, click{" "}
-              <span className="text-emerald-400 font-medium">Analyze Video</span> to see available transcripts, then select
+          <div
+            className="p-4"
+            style={{
+              background: "rgba(157,80,255,0.05)",
+              border: "1px solid rgba(157,80,255,0.15)",
+              borderRadius: 8,
+            }}
+          >
+            <p className="text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.6)" }}>
+              <span style={{ color: "#9D50FF", fontWeight: 600 }}>How it works:</span> Paste a YouTube URL above, click{" "}
+              <span style={{ color: "#9D50FF", fontWeight: 600 }}>Analyze Video</span> to see available transcripts, then select
               your preferred language and click{" "}
-              <span className="text-emerald-400 font-medium">Extract Transcript</span>.
+              <span style={{ color: "#9D50FF", fontWeight: 600 }}>Extract Transcript</span>.
             </p>
           </div>
-          <p className="text-slate-600 text-xs px-1">
+          <p className="text-xs px-1" style={{ color: "rgba(255,255,255,0.25)" }}>
             Supports YouTube videos with auto-generated or manually added captions.
           </p>
         </div>
