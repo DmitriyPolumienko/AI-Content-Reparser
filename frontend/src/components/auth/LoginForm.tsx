@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/effects/Toast";
 import Input from "@/components/ui/Input";
@@ -26,6 +26,99 @@ const signupSchema = z.object({
 
 type LoginValues = z.infer<typeof loginSchema>;
 type SignupValues = z.infer<typeof signupSchema>;
+
+const FEATURES = [
+  {
+    emoji: "🎬",
+    title: "YouTube → SEO Article",
+    description: "Paste any YouTube URL and get a publication-ready SEO article in seconds.",
+  },
+  {
+    emoji: "⚡",
+    title: "Lightning Fast Generation",
+    description: "AI-powered pipeline processes subtitles and generates polished content in under 30 seconds.",
+  },
+  {
+    emoji: "📱",
+    title: "Multi-Platform Output",
+    description: "Instantly create LinkedIn posts, Twitter threads, and blog articles from one video.",
+  },
+  {
+    emoji: "📝",
+    title: "Subtitle Extraction",
+    description: "Accurately extract and structure subtitles from any YouTube video in any language.",
+  },
+  {
+    emoji: "📊",
+    title: "Content History",
+    description: "Browse, search, and reuse all your previously generated content from one dashboard.",
+  },
+  {
+    emoji: "🔒",
+    title: "Secure & Private",
+    description: "Enterprise-grade Supabase auth keeps your content and credentials safe.",
+  },
+];
+
+function FeaturePanel() {
+  const [active, setActive] = useState(0);
+
+  useEffect(() => {
+    const t = setInterval(() => setActive((i) => (i + 1) % FEATURES.length), 3500);
+    return () => clearInterval(t);
+  }, []);
+
+  return (
+    <div className="hidden lg:flex flex-col justify-between p-10 xl:p-14 relative overflow-hidden bg-gradient-to-br from-[#0f0c29] via-[#1a1040] to-[#030014]">
+      {/* Background glows */}
+      <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-indigo-500/10 blur-3xl pointer-events-none" />
+
+      {/* Brand */}
+      <div>
+        <span className="font-display text-3xl font-bold text-white">
+          V2<span className="text-emerald-400">Post</span>
+        </span>
+        <p className="text-slate-400 text-sm mt-1">Turn videos into viral content</p>
+      </div>
+
+      {/* Feature slider */}
+      <div className="flex-1 flex flex-col justify-center my-8">
+        <p className="text-xs text-slate-500 uppercase tracking-widest mb-6">Why V2Post</p>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={active}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -16 }}
+            transition={{ duration: 0.35 }}
+            className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-sm"
+          >
+            <div className="text-4xl mb-4">{FEATURES[active].emoji}</div>
+            <h3 className="text-white font-semibold text-lg mb-2">{FEATURES[active].title}</h3>
+            <p className="text-slate-400 text-sm leading-relaxed">{FEATURES[active].description}</p>
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Dot indicators */}
+        <div className="flex gap-1.5 mt-5">
+          {FEATURES.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setActive(i)}
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                i === active ? "w-6 bg-emerald-400" : "w-1.5 bg-white/20"
+              }`}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Footer tagline */}
+      <p className="text-slate-500 text-xs">Trusted by content creators worldwide</p>
+    </div>
+  );
+}
 
 function LoginModeForm({ onTotpRequired }: { onTotpRequired: () => void }) {
   const { showToast } = useToast();
@@ -136,7 +229,7 @@ export default function LoginForm() {
 
   if (totpRequired) {
     return (
-      <div className="min-h-screen bg-[#030014] flex items-center justify-center px-4">
+      <div className="min-h-screen bg-gradient-to-br from-[#0f0c29] via-[#1a1040] to-[#030014] flex items-center justify-center px-4">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="w-full max-w-md">
           <div className="glass-card p-8">
             <h2 className="font-display text-2xl font-bold text-white mb-2">Two-Factor Authentication</h2>
@@ -165,15 +258,35 @@ export default function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen bg-[#030014] flex items-center justify-center px-4">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <span className="font-display text-2xl font-bold text-white">V2<span className="text-emerald-400">Post</span></span>
-          <p className="text-slate-400 text-sm mt-2">{mode === "login" ? "Welcome back" : "Create your account"}</p>
-        </div>
+    <div className="min-h-screen bg-[#030014] flex items-center justify-center px-4 relative overflow-hidden">
+      {/* Ambient glows */}
+      <div className="absolute top-0 left-1/4 w-[600px] h-[600px] rounded-full bg-emerald-600/5 blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] rounded-full bg-indigo-600/5 blur-3xl pointer-events-none" />
 
-        <div className="glass-card p-8">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="w-full max-w-4xl grid lg:grid-cols-2 overflow-hidden rounded-2xl border border-white/10 shadow-2xl"
+      >
+        {/* Left: Feature Panel */}
+        <FeaturePanel />
+
+        {/* Right: Auth Form */}
+        <div className="bg-[#0c0a1a]/90 backdrop-blur-sm p-8 xl:p-10 flex flex-col justify-center">
+          {/* Mobile-only logo */}
+          <div className="text-center lg:hidden mb-8">
+            <span className="font-display text-2xl font-bold text-white">V2<span className="text-emerald-400">Post</span></span>
+            <p className="text-slate-400 text-sm mt-1">Turn videos into viral content</p>
+          </div>
+
+          <h2 className="font-display text-xl font-bold text-white mb-1">
+            {mode === "login" ? "Welcome back" : "Create your account"}
+          </h2>
+          <p className="text-slate-500 text-sm mb-6">
+            {mode === "login" ? "Sign in to continue to V2Post" : "Get started for free today"}
+          </p>
+
           {/* Google OAuth */}
           <Button variant="outline" className="w-full mb-6" onClick={handleGoogleSignIn} disabled={oauthLoading}>
             <GoogleIcon />
