@@ -1,9 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/components/effects/Toast";
 import Button from "@/components/ui/Button";
+
+interface InvoiceItem {
+  id: string;
+  amount: number;
+  currency: string;
+  status: string | null;
+  date: number;
+  pdf: string | null;
+  description: string;
+}
 
 interface Plan {
   id: string;
@@ -73,7 +83,19 @@ export default function BillingSettings({
   const [retentionModal, setRetentionModal] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [invoices, setInvoices] = useState<InvoiceItem[]>([]);
+  const [invoicesLoading, setInvoicesLoading] = useState(true);
   const { showToast } = useToast();
+
+  useEffect(() => {
+    fetch("/api/stripe/invoices")
+      .then((r) => r.json())
+      .then((data: { invoices?: InvoiceItem[] }) => {
+        setInvoices(data.invoices ?? []);
+      })
+      .catch(() => setInvoices([]))
+      .finally(() => setInvoicesLoading(false));
+  }, []);
 
   const handleUpgrade = async (priceId: string, planId: string) => {
     if (!priceId) return;
@@ -190,7 +212,7 @@ export default function BillingSettings({
       </div>
 
       {/* Manage Subscription */}
-      {currentPlan !== "free" && (
+      {(subscriptionStatus === "active" || subscriptionStatus === "past_due") && (
         <div className="glass-card p-6">
           <p className="text-xs uppercase tracking-widest text-slate-500 mb-4">
             Manage Subscription
@@ -198,15 +220,80 @@ export default function BillingSettings({
           <p className="text-sm text-slate-400 mb-4">
             Update payment method, download invoices, or cancel your subscription.
           </p>
-          <Button
-            variant="outline"
-            onClick={() => setRetentionModal(true)}
-            disabled={portalLoading}
-          >
-            {portalLoading ? "Opening…" : "Manage Subscription"}
-          </Button>
+          <div className="flex gap-3 flex-wrap">
+            <Button
+              variant="outline"
+              onClick={handlePortal}
+              disabled={portalLoading}
+            >
+              {portalLoading ? "Opening…" : "Manage Subscription / Cancel"}
+            </Button>
+            <Button
+              variant="ghost"
+              className="text-red-400 hover:text-red-300 border border-red-500/20 hover:border-red-500/40"
+              onClick={handlePortal}
+              disabled={portalLoading}
+            >
+              Cancel Subscription
+            </Button>
+          </div>
         </div>
       )}
+
+      {/* Payment History */}
+      <div className="glass-card p-6">
+        <p className="text-xs uppercase tracking-widest text-slate-500 mb-4">
+          Payment History
+        </p>
+        {invoicesLoading ? (
+          <div className="flex flex-col gap-3">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="animate-pulse bg-white/5 rounded h-4" />
+            ))}
+          </div>
+        ) : invoices.length === 0 ? (
+          <p className="text-slate-500 text-sm text-center py-6">No payment history yet.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-xs text-slate-500 border-b border-white/5">
+                  <th className="text-left py-2 pr-4 font-medium">Date</th>
+                  <th className="text-left py-2 pr-4 font-medium">Description</th>
+                  <th className="text-left py-2 pr-4 font-medium">Amount</th>
+                  <th className="text-left py-2 pr-4 font-medium">Status</th>
+                  <th className="text-left py-2 font-medium">Invoice</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {invoices.map((inv) => (
+                  <tr key={inv.id} className="text-slate-300">
+                    <td className="py-3 pr-4 text-xs text-slate-400 whitespace-nowrap">
+                      {new Date(inv.date * 1000).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+                    </td>
+                    <td className="py-3 pr-4 text-xs max-w-[200px] truncate">{inv.description}</td>
+                    <td className="py-3 pr-4 text-xs whitespace-nowrap">
+                      {(inv.amount / 100).toFixed(2)} {inv.currency.toUpperCase()}
+                    </td>
+                    <td className="py-3 pr-4">
+                      <InvoiceStatusBadge status={inv.status} />
+                    </td>
+                    <td className="py-3 text-xs">
+                      {inv.pdf ? (
+                        <a href={inv.pdf} target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 text-xs">
+                          PDF ↗
+                        </a>
+                      ) : (
+                        <span className="text-slate-600">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       {/* Retention modal */}
       <AnimatePresence>
@@ -281,5 +368,27 @@ function CheckIcon({ className }: { className?: string }) {
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
       <polyline points="20 6 9 17 4 12" />
     </svg>
+  );
+}
+
+function InvoiceStatusBadge({ status }: { status: string | null }) {
+  if (status === "paid") {
+    return (
+      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+        paid
+      </span>
+    );
+  }
+  if (status === "open") {
+    return (
+      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
+        open
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-500/10 text-slate-400 border border-slate-500/20">
+      {status ?? "—"}
+    </span>
   );
 }

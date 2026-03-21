@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   AreaChart,
   Area,
@@ -13,9 +12,9 @@ import {
   PieChart,
   Pie,
   Cell,
-  Legend,
 } from "recharts";
-import { Zap } from "lucide-react";
+import { Zap, ChevronDown } from "lucide-react";
+import { getGeneration } from "@/lib/api";
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
 
@@ -71,6 +70,19 @@ const PLAN_LABELS: Record<string, string> = {
   free: "Free",
   pro: "Pro",
   enterprise: "Enterprise",
+};
+
+// ─── Date range type ──────────────────────────────────────────────────────────
+
+type DateRange = "7D" | "14D" | "30D";
+
+// ─── Format badge colors ──────────────────────────────────────────────────────
+
+const FORMAT_COLORS: Record<string, string> = {
+  "SEO Article": "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+  "LinkedIn Post": "bg-violet-500/10 text-violet-400 border-violet-500/20",
+  "Twitter Thread": "bg-blue-500/10 text-blue-400 border-blue-500/20",
+  "Video Recap": "bg-amber-500/10 text-amber-400 border-amber-500/20",
 };
 
 // ─── Animation variants ───────────────────────────────────────────────────────
@@ -130,7 +142,7 @@ function AreaTooltip({ active, payload, label }: {
     <div className="bg-[#0d1117] border border-white/10 rounded-xl px-3 py-2">
       <p className="text-xs text-slate-400 mb-1">{label}</p>
       <p className="text-sm font-semibold text-white">
-        {payload[0].value.toLocaleString()} chars
+        {payload[0].value.toLocaleString()} Chars
       </p>
     </div>
   );
@@ -158,7 +170,7 @@ function CircularProgress({ percent }: { percent: number }) {
   const color = percent > 90 ? "#EF4444" : percent > 70 ? "#F59E0B" : "#10B981";
 
   return (
-    <svg width="88" height="88" viewBox="0 0 88 88" className="-rotate-90">
+    <svg width="88" height="88" viewBox="0 0 88 88">
       <circle cx="44" cy="44" r={r} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="8" />
       <circle
         cx="44"
@@ -170,8 +182,20 @@ function CircularProgress({ percent }: { percent: number }) {
         strokeLinecap="round"
         strokeDasharray={circumference}
         strokeDashoffset={offset}
+        transform="rotate(-90 44 44)"
         style={{ transition: "stroke-dashoffset 0.6s ease" }}
       />
+      <text
+        x="50%"
+        y="50%"
+        textAnchor="middle"
+        dominantBaseline="middle"
+        fontSize="13"
+        fontWeight="700"
+        fill="white"
+      >
+        {percent}%
+      </text>
     </svg>
   );
 }
@@ -207,6 +231,32 @@ export default function UserDashboard({
   const timeSaved = Math.round((TOTAL_CHARS_PROCESSED / 1000) * 0.5);
   const animatedTimeSaved = useCountUp(timeSaved);
 
+  // Fix 5 — date range state
+  const [dateRange, setDateRange] = useState<DateRange>("30D");
+
+  const filteredUsageData = dateRange === "7D"
+    ? USAGE_DATA.slice(-7)
+    : dateRange === "14D"
+    ? USAGE_DATA.slice(-14)
+    : USAGE_DATA;
+
+  // Fix 9 — accordion state
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [contentCache, setContentCache] = useState<Record<string, string | null>>({});
+  const [loadingContent, setLoadingContent] = useState<string | null>(null);
+
+  const handleToggle = async (id: string) => {
+    if (expandedId === id) { setExpandedId(null); return; }
+    setExpandedId(id);
+    if (id in contentCache) return;
+    setLoadingContent(id);
+    const gen = await getGeneration(id);
+    setContentCache((prev) => ({ ...prev, [id]: gen?.content ?? null }));
+    setLoadingContent(null);
+  };
+
+  const displayBalance = animatedBalance;
+
   return (
     <motion.div
       variants={containerVariants}
@@ -218,18 +268,11 @@ export default function UserDashboard({
       <motion.div variants={itemVariants} className={CARD}>
         <p className="text-xs uppercase tracking-widest text-slate-500 mb-4">Credit Overview</p>
 
-        <div className="flex items-center gap-4 mb-4">
-          <div className="relative shrink-0">
-            <CircularProgress percent={usedPercent} />
-            <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-white rotate-90">
-              {usedPercent}%
-            </span>
-          </div>
+        <div className="flex items-center gap-4 my-4">
+          <CircularProgress percent={usedPercent} />
           <div>
-            <p className="text-3xl font-bold text-white font-display leading-none">
-              {animatedBalance.toLocaleString()}
-            </p>
-            <p className="text-xs text-slate-400 mt-1">Chars Remaining</p>
+            <p className="text-3xl font-bold text-white font-display">{displayBalance.toLocaleString()}</p>
+            <p className="text-sm text-slate-400">Chars Remaining</p>
           </div>
         </div>
 
@@ -250,12 +293,27 @@ export default function UserDashboard({
       <motion.div variants={itemVariants} className={`${CARD} md:col-span-2`}>
         <div className="flex items-center justify-between mb-4">
           <div>
-            <p className="text-sm font-semibold text-white">Usage Over Time</p>
-            <p className="text-xs text-slate-500">Last 21 days</p>
+            <p className="font-semibold text-white">Usage Over Time</p>
+            <p className="text-xs text-slate-500 mt-0.5">Last {dateRange}</p>
+          </div>
+          <div className="flex gap-1 bg-white/5 rounded-lg p-1">
+            {(["7D", "14D", "30D"] as DateRange[]).map((r) => (
+              <button
+                key={r}
+                onClick={() => setDateRange(r)}
+                className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all ${
+                  dateRange === r
+                    ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                    : "text-slate-500 hover:text-slate-300"
+                }`}
+              >
+                {r}
+              </button>
+            ))}
           </div>
         </div>
         <ResponsiveContainer width="100%" height={160}>
-          <AreaChart data={USAGE_DATA} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+          <AreaChart data={filteredUsageData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
             <defs>
               <linearGradient id="usageGradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#10B981" stopOpacity={0.3} />
@@ -267,7 +325,7 @@ export default function UserDashboard({
               tick={{ fill: "#64748b", fontSize: 10 }}
               axisLine={false}
               tickLine={false}
-              interval={3}
+              interval={dateRange === "7D" ? 1 : 3}
             />
             <YAxis
               tick={{ fill: "#64748b", fontSize: 10 }}
@@ -324,14 +382,13 @@ export default function UserDashboard({
       <motion.div variants={itemVariants} className={CARD}>
         <p className="text-sm font-semibold text-white mb-4">Time Saved (Est.)</p>
         <div className="flex items-center gap-4 mb-4">
-          <div
-            className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
-            style={{ background: "rgba(139, 92, 246, 0.15)" }}
-          >
-            <Zap
-              className="w-6 h-6 text-violet-400"
-              style={{ filter: "drop-shadow(0 0 8px #8B5CF6)" }}
-            />
+          <div className="relative group inline-block">
+            <div className="p-3 rounded-xl bg-violet-500/10 border border-violet-500/20 cursor-help">
+              <Zap className="w-6 h-6 text-violet-400" style={{ filter: "drop-shadow(0 0 6px #8B5CF6)" }} />
+            </div>
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-[#0d1117] border border-white/10 rounded-lg text-xs text-slate-300 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+              ~0.5h per 1k Chars processed
+            </div>
           </div>
           <div>
             <p className="text-3xl font-bold text-white font-display leading-none">
@@ -340,60 +397,63 @@ export default function UserDashboard({
             <p className="text-xs text-slate-400 mt-1">hours this month</p>
           </div>
         </div>
-        <p className="text-xs text-slate-500">~0.5h per 1k Chars processed</p>
       </motion.div>
 
       {/* Widget 5 — Recent Activity (full width) */}
       <motion.div variants={itemVariants} className={`${CARD} md:col-span-3`}>
         <div className="flex items-center justify-between mb-4">
           <p className="text-sm font-semibold text-white">Recent Activity</p>
-          <Link
-            href="/dashboard"
-            className="text-xs text-slate-400 hover:text-emerald-400 transition-colors"
-          >
-            View All →
-          </Link>
         </div>
 
-        <div className="divide-y divide-white/5">
+        <div>
           {RECENT_ACTIVITY.map((item) => (
-            <div
-              key={item.id}
-              className="flex items-center gap-4 py-3 hover:bg-white/[0.03] -mx-1 px-1 rounded-xl transition-colors"
-            >
-              {/* Title */}
-              <p className="flex-1 text-sm text-slate-300 truncate min-w-0">
-                {item.title.length > 40 ? item.title.slice(0, 40) + "…" : item.title}
-              </p>
-
-              {/* Format badge */}
-              <span
-                className={`hidden sm:inline-flex shrink-0 px-2 py-0.5 rounded-full text-xs font-medium ${
-                  FORMAT_BADGE_COLORS[item.format] ?? "bg-white/10 text-slate-300"
-                }`}
+            <div key={item.id} className="border-b border-white/5 last:border-0">
+              <div
+                className="flex items-center justify-between py-3 px-2 hover:bg-white/[0.02] rounded-lg cursor-pointer transition-colors"
+                onClick={() => handleToggle(item.id)}
               >
-                {item.format}
-              </span>
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <span className="text-sm text-slate-300 truncate">{item.title}</span>
+                  <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full border font-medium ${FORMAT_COLORS[item.format] ?? "bg-white/10 text-slate-300 border-white/10"}`}>
+                    {item.format}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 shrink-0 ml-3">
+                  <span className="text-xs text-slate-500 hidden sm:block">- {item.cost.toLocaleString()} Chars</span>
+                  <span className="text-xs text-slate-600">{item.date}</span>
+                  <ChevronDown
+                    className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${expandedId === item.id ? "rotate-180" : ""}`}
+                  />
+                </div>
+              </div>
 
-              {/* Cost — hidden on mobile */}
-              <span className="hidden md:block shrink-0 text-xs text-slate-400 tabular-nums">
-                − {item.cost.toLocaleString()} chars
-              </span>
-
-              {/* Date */}
-              <span className="hidden sm:block shrink-0 text-xs text-slate-500">
-                {item.date}
-              </span>
-
-              {/* Action */}
-              <a
-                href={item.videoUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="shrink-0 text-xs text-emerald-400 hover:text-emerald-300 transition-colors"
-              >
-                View →
-              </a>
+              <AnimatePresence>
+                {expandedId === item.id && (
+                  <motion.div
+                    key={`content-${item.id}`}
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.25, ease: "easeInOut" }}
+                    className="overflow-hidden"
+                  >
+                    <div className="px-3 pb-4">
+                      <div className="bg-white/[0.02] rounded-xl p-4 text-sm text-slate-300 leading-relaxed whitespace-pre-wrap max-h-80 overflow-y-auto">
+                        {loadingContent === item.id ? (
+                          <div className="flex items-center gap-2 text-slate-500">
+                            <div className="w-4 h-4 border-2 border-slate-600 border-t-emerald-400 rounded-full animate-spin" />
+                            Loading content…
+                          </div>
+                        ) : contentCache[item.id] ? (
+                          contentCache[item.id]
+                        ) : (
+                          <span className="text-slate-500 italic">Content not available.</span>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           ))}
         </div>
@@ -401,3 +461,4 @@ export default function UserDashboard({
     </motion.div>
   );
 }
+
