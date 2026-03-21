@@ -34,9 +34,11 @@ export async function updateSession(request: NextRequest) {
   const protectedPaths = ["/dashboard", "/settings"];
   const isProtected = protectedPaths.some((p) => pathname.startsWith(p));
 
+  const allowBypass = process.env.NODE_ENV !== "production";
+
   if (isProtected && !user) {
     const bypassCookie = request.cookies.get("test_bypass");
-    if (bypassCookie?.value !== "1") {
+    if (!(allowBypass && bypassCookie?.value === "1")) {
       const url = request.nextUrl.clone();
       url.pathname = "/login";
       url.searchParams.set("redirectTo", pathname);

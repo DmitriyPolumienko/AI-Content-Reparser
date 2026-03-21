@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, field_validator, model_validator
 
 # ---------------------------------------------------------------------------
 # Tone-of-voice options per content type
@@ -54,7 +54,7 @@ class GenerateRequest(BaseModel):
     transcript: str
     content_type: str  # "seo_article" | "linkedin_post" | "twitter_thread"
     keywords: List[str] = []
-    user_id: str = "mock-user-123"
+    user_id: str
     # TODO(language-prompt): wire this into the generation prompt and per-language
     # rate-limiting once that feature is implemented.
     language: Optional[str] = None  # e.g. "en", "ru" – currently stored for future use
@@ -66,6 +66,14 @@ class GenerateRequest(BaseModel):
     # Include Source Link: when True, a CTA + video_url is injected into the output
     include_source_link: bool = False
     video_url: Optional[str] = None
+
+    @field_validator("user_id")
+    @classmethod
+    def _reject_mock_user(cls, v: str) -> str:
+        import os
+        if v == "mock-user-123" and os.getenv("APP_ENV", "production") == "production":
+            raise ValueError("user_id 'mock-user-123' is not allowed in production.")
+        return v
 
     @model_validator(mode="after")
     def _validate_tone_and_source_link(self) -> "GenerateRequest":
