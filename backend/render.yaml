@@ -11,5 +11,5 @@ services:
       - key: OPENAI_MODEL
         value: gpt-4.1
       - key: ALLOWED_ORIGINS
-        sync: false
+        value: "https://v2post.com,https://dev.v2post.com"
     healthCheckPath: /health
