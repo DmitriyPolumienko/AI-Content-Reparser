@@ -6,11 +6,12 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/effects/Toast";
+import Navbar from "@/components/landing/Navbar";
 
 const navItems = [
-  { href: "/settings/profile", label: "Profile", icon: UserIcon },
-  { href: "/settings/security", label: "Security", icon: ShieldIcon },
-  { href: "/settings/billing", label: "Billing", icon: CreditCardIcon },
+  { href: "/settings/profile", label: "Profile" },
+  { href: "/settings/security", label: "Security" },
+  { href: "/settings/billing", label: "Billing" },
 ];
 
 export default function SettingsShell({ children }: { children: React.ReactNode }) {
@@ -32,52 +33,43 @@ export default function SettingsShell({ children }: { children: React.ReactNode 
   };
 
   return (
-    <div className="min-h-screen bg-[#030014] text-white flex">
-      {/* Sidebar */}
-      <aside className="w-60 shrink-0 border-r border-white/5 flex flex-col py-8 px-4 fixed left-0 top-0 h-full">
-        <Link
-          href="/dashboard"
-          className="font-display text-xl font-bold text-white mb-8 px-2 block hover:text-emerald-400 transition-colors"
-        >
-          V2<span className="text-emerald-400">Post</span>
-        </Link>
+    <div className="min-h-screen bg-[#030014] text-white">
+      <Navbar variant="dashboard" />
 
-        <p className="text-xs uppercase tracking-widest text-slate-500 px-2 mb-3">
-          Settings
-        </p>
+      {/* Horizontal tab bar */}
+      <div className="border-b border-white/5 mt-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
+            {navItems.map(({ href, label }) => {
+              const active = pathname === href;
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`px-4 py-3.5 text-sm font-medium border-b-2 -mb-px whitespace-nowrap transition-all duration-200 ${
+                    active
+                      ? "text-emerald-400 border-emerald-400"
+                      : "text-slate-400 border-transparent hover:text-white hover:border-white/20"
+                  }`}
+                >
+                  {label}
+                </Link>
+              );
+            })}
 
-        <nav className="flex flex-col gap-1 flex-1">
-          {navItems.map(({ href, label, icon: Icon }) => {
-            const active = pathname === href;
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
-                  active
-                    ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                    : "text-slate-400 hover:text-white hover:bg-white/5"
-                }`}
-              >
-                <Icon className="w-4 h-4 shrink-0" />
-                {label}
-              </Link>
-            );
-          })}
-        </nav>
+            <button
+              onClick={handleSignOut}
+              disabled={signingOut}
+              className="ml-auto px-4 py-3.5 text-sm font-medium text-slate-400 hover:text-red-400 transition-colors duration-200 whitespace-nowrap border-b-2 border-transparent disabled:opacity-50"
+            >
+              {signingOut ? "Signing out…" : "Sign Out"}
+            </button>
+          </div>
+        </div>
+      </div>
 
-        <button
-          onClick={handleSignOut}
-          disabled={signingOut}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-red-400 hover:bg-red-500/5 transition-all duration-200 disabled:opacity-50"
-        >
-          <SignOutIcon className="w-4 h-4 shrink-0" />
-          {signingOut ? "Signing out…" : "Sign Out"}
-        </button>
-      </aside>
-
-      {/* Main content */}
-      <main className="ml-60 flex-1 p-8 min-h-screen">
+      {/* Page content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -87,41 +79,5 @@ export default function SettingsShell({ children }: { children: React.ReactNode 
         </motion.div>
       </main>
     </div>
-  );
-}
-
-function UserIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <circle cx="12" cy="8" r="4" />
-      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
-    </svg>
-  );
-}
-
-function ShieldIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <path d="M12 2L3 7v6c0 5.25 3.75 10.15 9 11.25C17.25 23.15 21 18.25 21 13V7l-9-5z" />
-    </svg>
-  );
-}
-
-function CreditCardIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <rect x="2" y="5" width="20" height="14" rx="2" />
-      <path d="M2 10h20" />
-    </svg>
-  );
-}
-
-function SignOutIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-      <polyline points="16 17 21 12 16 7" />
-      <line x1="21" y1="12" x2="9" y2="12" />
-    </svg>
   );
 }

@@ -16,8 +16,8 @@ interface ProfileTabsProps {
 }
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: "profile", label: "Profile" },
   { id: "dashboard", label: "Dashboard" },
+  { id: "profile", label: "Profile" },
 ];
 
 export default function ProfileTabs({
@@ -28,7 +28,7 @@ export default function ProfileTabs({
   subscriptionStatus,
   charsBalance,
 }: ProfileTabsProps) {
-  const [activeTab, setActiveTab] = useState<Tab>("profile");
+  const [activeTab, setActiveTab] = useState<Tab>("dashboard");
 
   return (
     <div>
