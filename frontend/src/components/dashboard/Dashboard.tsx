@@ -624,7 +624,7 @@ export default function Dashboard() {
       {/* Purchase Modal */}
       <PurchaseModal
         isOpen={purchaseModalOpen}
-        charsRemaining={charsRemaining}
+        charsRemaining={charsRemaining ?? 0}
         packages={overLimitPackages}
         billingNote={overLimitBillingNote}
         onClose={() => setPurchaseModalOpen(false)}
