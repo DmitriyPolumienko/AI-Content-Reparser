@@ -28,29 +28,17 @@ interface NavbarProps {
   onStartOver?: () => void;
 }
 
-function UserAvatar({ avatarUrl, name }: { avatarUrl?: string | null; name?: string | null }) {
-  const initials = name
-    ? name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
-    : "U";
-
-  if (avatarUrl) {
-    return (
-      <Image
-        src={avatarUrl}
-        alt={name ?? "User"}
-        width={32}
-        height={32}
-        className="w-8 h-8 rounded-full object-cover ring-2 ring-white/10 hover:ring-emerald-500/50 transition-all"
-      />
-    );
-  }
-
+function UserEmailBadge({ email }: { email: string }) {
+  const short = email.length > 22 ? email.slice(0, 20) + "…" : email;
   return (
-    <div
-      className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white ring-2 ring-white/10 hover:ring-emerald-500/50 transition-all"
-      style={{ background: "linear-gradient(135deg, #10B981, #059669)" }}
-    >
-      {initials}
+    <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 hover:border-emerald-500/30 transition-all cursor-pointer max-w-[180px]">
+      <div
+        className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0"
+        style={{ background: "linear-gradient(135deg, #10B981, #059669)" }}
+      >
+        {email[0]?.toUpperCase() ?? "U"}
+      </div>
+      <span className="text-xs text-slate-300 leading-none truncate">{short}</span>
     </div>
   );
 }
@@ -93,7 +81,6 @@ export default function Navbar({ variant = "landing", charsRemaining, onStartOve
 
   const userName = user?.user_metadata?.full_name ?? user?.email?.split("@")[0] ?? "User";
   const userEmail = user?.email ?? "";
-  const avatarUrl = user?.user_metadata?.avatar_url ?? null;
 
   return (
     <header
@@ -127,7 +114,7 @@ export default function Navbar({ variant = "landing", charsRemaining, onStartOve
         </ul>
 
         {/* Desktop right-side */}
-        <div className="hidden md:flex items-center gap-3">
+        <div className="hidden md:flex items-center gap-4">
           {isDashboard && (
             <div className="px-3 py-1.5 glass rounded-full text-xs text-slate-400">
               Chars remaining:{" "}
@@ -149,14 +136,16 @@ export default function Navbar({ variant = "landing", charsRemaining, onStartOve
           {!loading && (
             <>
               {user ? (
-                <div className="relative" ref={dropdownRef}>
-                  <button
-                    onClick={() => setDropdownOpen((v) => !v)}
-                    className="flex items-center gap-2 focus:outline-none"
-                    aria-label="User menu"
-                  >
-                    <UserAvatar avatarUrl={avatarUrl} name={userName} />
-                  </button>
+                <>
+                  <div className="w-px h-4 bg-white/10" />
+                  <div className="relative" ref={dropdownRef}>
+                    <button
+                      onClick={() => setDropdownOpen((v) => !v)}
+                      className="flex items-center gap-2 focus:outline-none"
+                      aria-label="User menu"
+                    >
+                      <UserEmailBadge email={userEmail} />
+                    </button>
 
                   <AnimatePresence>
                     {dropdownOpen && (
@@ -204,7 +193,8 @@ export default function Navbar({ variant = "landing", charsRemaining, onStartOve
                       </motion.div>
                     )}
                   </AnimatePresence>
-                </div>
+                  </div>
+                </>
               ) : (
                 <>
                   <Link
@@ -287,11 +277,7 @@ export default function Navbar({ variant = "landing", charsRemaining, onStartOve
                   {user ? (
                     <>
                       <div className="flex items-center gap-3 py-2 border-t border-white/10 mt-1">
-                        <UserAvatar avatarUrl={avatarUrl} name={userName} />
-                        <div>
-                          <p className="text-sm font-medium text-white">{userName}</p>
-                          <p className="text-xs text-slate-500">{userEmail}</p>
-                        </div>
+                        <UserEmailBadge email={userEmail} />
                       </div>
                       {!isDashboard && (
                         <Link
