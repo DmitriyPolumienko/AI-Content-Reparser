@@ -17,6 +17,8 @@ import Navbar from "@/components/landing/Navbar";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import ErrorState from "@/components/ui/ErrorState";
 import { streamGenerateContent, listGenerations, getGeneration, SymbolPackage, GenerationHistoryItem } from "@/lib/api";
+import { createClient } from "@/lib/supabase/client";
+import { useUser } from "@/hooks/useUser";
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -34,6 +36,8 @@ const slideVariants = {
 };
 
 export default function Dashboard() {
+  const { user } = useUser();
+  const userId = user?.id ?? null;
   const [step, setStep] = useState<Step>(1);
   const [url, setUrl] = useState("");
   const [transcript, setTranscript] = useState("");
@@ -68,8 +72,6 @@ export default function Dashboard() {
   // Generation history
   const [history, setHistory] = useState<GenerationHistoryItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  // TODO: replace with real user authentication once auth is implemented
-  const MOCK_USER_ID = "mock-user-123";
   // Delay after stream end to allow backend to finish saving the generation
   const HISTORY_REFRESH_DELAY_MS = 1500;
 
@@ -91,15 +93,33 @@ export default function Dashboard() {
 
   // Fetch history on mount
   useEffect(() => {
+    if (!userId) return;
     setHistoryLoading(true);
-    listGenerations(MOCK_USER_ID).then((items) => {
+    listGenerations(userId).then((items) => {
       setHistory(items);
       setHistoryLoading(false);
     });
-  }, []);
+  }, [userId]);
+
+  // Load real chars balance from Supabase
+  useEffect(() => {
+    if (!userId) return;
+    const supabase = createClient();
+    supabase
+      .from("users")
+      .select("chars_remaining")
+      .eq("id", userId)
+      .single()
+      .then(({ data }) => {
+        if (data?.chars_remaining !== undefined) {
+          setCharsRemaining(data.chars_remaining);
+        }
+      });
+  }, [userId]);
 
   const refreshHistory = () => {
-    listGenerations(MOCK_USER_ID).then(setHistory);
+    if (!userId) return;
+    listGenerations(userId).then(setHistory);
   };
 
   const handleExtract = (extractedUrl: string, extractedTranscript: string, language?: string) => {
@@ -113,6 +133,11 @@ export default function Dashboard() {
     // Abort any in-flight stream
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
+    }
+
+    if (!userId) {
+      setError("You must be signed in to generate content.");
+      return;
     }
 
     setLoading(true);
@@ -134,6 +159,7 @@ export default function Dashboard() {
         target_max_chars: settings.targetMaxChars,
         include_source_link: settings.includeSourceLink,
         video_url: settings.includeSourceLink ? settings.videoUrl || null : null,
+        user_id: userId,
       },
       (event) => {
         if (event.type === "start") {

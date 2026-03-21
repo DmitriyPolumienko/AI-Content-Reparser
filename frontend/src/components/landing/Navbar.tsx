@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import ShimmerButton from "@/components/effects/ShimmerButton";
+import { createClient } from "@/lib/supabase/client";
+import { useUser } from "@/hooks/useUser";
 
 const landingNavLinks = [
   { href: "#features", label: "Features" },
@@ -26,10 +28,40 @@ interface NavbarProps {
   onStartOver?: () => void;
 }
 
+function UserAvatar({ avatarUrl, name }: { avatarUrl?: string | null; name?: string | null }) {
+  const initials = name
+    ? name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
+    : "U";
+
+  if (avatarUrl) {
+    return (
+      <Image
+        src={avatarUrl}
+        alt={name ?? "User"}
+        width={32}
+        height={32}
+        className="w-8 h-8 rounded-full object-cover ring-2 ring-white/10 hover:ring-emerald-500/50 transition-all"
+      />
+    );
+  }
+
+  return (
+    <div
+      className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white ring-2 ring-white/10 hover:ring-emerald-500/50 transition-all"
+      style={{ background: "linear-gradient(135deg, #10B981, #059669)" }}
+    >
+      {initials}
+    </div>
+  );
+}
+
 export default function Navbar({ variant = "landing", charsRemaining, onStartOver }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const { user, loading } = useUser();
 
   const isDashboard = variant === "dashboard";
   const navLinks = isDashboard ? dashboardNavLinks : landingNavLinks;
@@ -39,6 +71,29 @@ export default function Navbar({ variant = "landing", charsRemaining, onStartOve
     window.addEventListener("scroll", handler);
     return () => window.removeEventListener("scroll", handler);
   }, []);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const handleSignOut = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    setDropdownOpen(false);
+    router.push("/");
+    router.refresh();
+  };
+
+  const userName = user?.user_metadata?.full_name ?? user?.email?.split("@")[0] ?? "User";
+  const userEmail = user?.email ?? "";
+  const avatarUrl = user?.user_metadata?.avatar_url ?? null;
 
   return (
     <header
@@ -71,34 +126,98 @@ export default function Navbar({ variant = "landing", charsRemaining, onStartOve
           ))}
         </ul>
 
-        {/* Desktop right-side content */}
+        {/* Desktop right-side */}
         <div className="hidden md:flex items-center gap-3">
-          {isDashboard ? (
+          {isDashboard && (
+            <div className="px-3 py-1.5 glass rounded-full text-xs text-slate-400">
+              Chars remaining:{" "}
+              <span className="text-emerald-400 font-semibold">
+                {(charsRemaining ?? 0).toLocaleString()}
+              </span>
+            </div>
+          )}
+          {isDashboard && (
+            <button
+              onClick={onStartOver}
+              className="text-xs text-slate-500 hover:text-emerald-400 transition-colors"
+            >
+              ↺ Start Over
+            </button>
+          )}
+
+          {/* Auth section */}
+          {!loading && (
             <>
-              <div className="px-3 py-1.5 glass rounded-full text-xs text-slate-400">
-                Chars remaining:{" "}
-                <span className="text-emerald-400 font-semibold">
-                  {(charsRemaining ?? 0).toLocaleString()}
-                </span>
-              </div>
-              <button
-                onClick={onStartOver}
-                className="text-xs text-slate-500 hover:text-emerald-400 transition-colors"
-              >
-                ↺ Start Over
-              </button>
-            </>
-          ) : (
-            <>
-              <Link
-                href="/dashboard"
-                className="text-sm text-slate-400 hover:text-white transition-colors"
-              >
-                Sign In
-              </Link>
-              <ShimmerButton size="sm" onClick={() => router.push("/dashboard")}>
-                Get Started →
-              </ShimmerButton>
+              {user ? (
+                <div className="relative" ref={dropdownRef}>
+                  <button
+                    onClick={() => setDropdownOpen((v) => !v)}
+                    className="flex items-center gap-2 focus:outline-none"
+                    aria-label="User menu"
+                  >
+                    <UserAvatar avatarUrl={avatarUrl} name={userName} />
+                  </button>
+
+                  <AnimatePresence>
+                    {dropdownOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute right-0 mt-2 w-56 bg-[#0d1117] border border-white/10 rounded-xl shadow-2xl overflow-hidden"
+                      >
+                        {/* User info header */}
+                        <div className="px-4 py-3 border-b border-white/5">
+                          <p className="text-sm font-semibold text-white truncate">{userName}</p>
+                          <p className="text-xs text-slate-500 truncate">{userEmail}</p>
+                        </div>
+
+                        {/* Menu items */}
+                        <div className="py-1">
+                          {!isDashboard && (
+                            <Link
+                              href="/dashboard"
+                              onClick={() => setDropdownOpen(false)}
+                              className="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
+                            >
+                              <span>🚀</span> Dashboard
+                            </Link>
+                          )}
+                          <Link
+                            href="/settings/profile"
+                            onClick={() => setDropdownOpen(false)}
+                            className="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
+                          >
+                            <span>⚙️</span> Settings
+                          </Link>
+                        </div>
+
+                        <div className="border-t border-white/5 py-1">
+                          <button
+                            onClick={handleSignOut}
+                            className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/5 transition-colors"
+                          >
+                            <span>→</span> Sign Out
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    className="text-sm text-slate-400 hover:text-white transition-colors"
+                  >
+                    Sign In
+                  </Link>
+                  <ShimmerButton size="sm" onClick={() => router.push("/login")}>
+                    Get Started →
+                  </ShimmerButton>
+                </>
+              )}
             </>
           )}
         </div>
@@ -145,7 +264,8 @@ export default function Navbar({ variant = "landing", charsRemaining, onStartOve
                   {link.label}
                 </Link>
               ))}
-              {isDashboard ? (
+
+              {isDashboard && (
                 <>
                   <div className="px-3 py-1.5 glass rounded-full text-xs text-slate-400 text-center">
                     Chars remaining:{" "}
@@ -160,14 +280,52 @@ export default function Navbar({ variant = "landing", charsRemaining, onStartOve
                     ↺ Start Over
                   </button>
                 </>
-              ) : (
-                <ShimmerButton
-                  size="sm"
-                  className="mt-2 w-full justify-center"
-                  onClick={() => { setMenuOpen(false); router.push("/dashboard"); }}
-                >
-                  Get Started →
-                </ShimmerButton>
+              )}
+
+              {!loading && (
+                <>
+                  {user ? (
+                    <>
+                      <div className="flex items-center gap-3 py-2 border-t border-white/10 mt-1">
+                        <UserAvatar avatarUrl={avatarUrl} name={userName} />
+                        <div>
+                          <p className="text-sm font-medium text-white">{userName}</p>
+                          <p className="text-xs text-slate-500">{userEmail}</p>
+                        </div>
+                      </div>
+                      {!isDashboard && (
+                        <Link
+                          href="/dashboard"
+                          className="text-slate-300 hover:text-white py-2 transition-colors"
+                          onClick={() => setMenuOpen(false)}
+                        >
+                          🚀 Dashboard
+                        </Link>
+                      )}
+                      <Link
+                        href="/settings/profile"
+                        className="text-slate-300 hover:text-white py-2 transition-colors"
+                        onClick={() => setMenuOpen(false)}
+                      >
+                        ⚙️ Settings
+                      </Link>
+                      <button
+                        onClick={() => { setMenuOpen(false); handleSignOut(); }}
+                        className="text-left text-red-400 hover:text-red-300 py-2 transition-colors"
+                      >
+                        → Sign Out
+                      </button>
+                    </>
+                  ) : (
+                    <ShimmerButton
+                      size="sm"
+                      className="mt-2 w-full justify-center"
+                      onClick={() => { setMenuOpen(false); router.push("/login"); }}
+                    >
+                      Get Started →
+                    </ShimmerButton>
+                  )}
+                </>
               )}
             </div>
           </motion.div>

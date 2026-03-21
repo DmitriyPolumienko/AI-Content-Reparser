@@ -76,7 +76,7 @@ export async function generateContent(params: GenerateParams): Promise<GenerateR
   const res = await fetch(`${API_BASE}/api/generate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ user_id: "mock-user-123", ...params }),
+    body: JSON.stringify(params),
   });
 
   if (!res.ok) {
@@ -103,7 +103,7 @@ export function streamGenerateContent(
       const res = await fetch(`${API_BASE}/api/generate/stream`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: "mock-user-123", ...params }),
+        body: JSON.stringify(params),
         signal: controller.signal,
       });
 
