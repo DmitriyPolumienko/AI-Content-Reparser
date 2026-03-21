@@ -50,7 +50,7 @@ export default function Dashboard() {
     language: "English",
   });
   const [generatedContent, setGeneratedContent] = useState("");
-  const [charsRemaining, setCharsRemaining] = useState(18000);
+  const [charsRemaining, setCharsRemaining] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [errorCode, setErrorCode] = useState<502 | 504 | null>(null);
@@ -72,49 +72,36 @@ export default function Dashboard() {
   // Generation history
   const [history, setHistory] = useState<GenerationHistoryItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  // Delay after stream end to allow backend to finish saving the generation
-  const HISTORY_REFRESH_DELAY_MS = 1500;
-
-  // Fetch the current generation counter from the backend on mount
+  // Fetch initial data: stats, history, and chars balance in parallel
   useEffect(() => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-    if (!apiUrl) return;
-    fetch(`${apiUrl}/api/stats`)
-      .then((res) => res.ok ? res.json() : null)
-      .then((data) => {
-        if (data?.videos_processed !== undefined) {
-          setVideosProcessed(data.videos_processed);
-        }
-      })
-      .catch(() => {
-        // Non-critical; keep the local default value
-      });
-  }, []);
+    if (!userId) {
+      // Fetch global stats even without userId
+      if (!apiUrl) return;
+      fetch(`${apiUrl}/api/stats`)
+        .then((res) => res.ok ? res.json() : null)
+        .then((data) => {
+          if (data?.videos_processed !== undefined) setVideosProcessed(data.videos_processed);
+        })
+        .catch(() => {});
+      return;
+    }
 
-  // Fetch history on mount
-  useEffect(() => {
-    if (!userId) return;
-    setHistoryLoading(true);
-    listGenerations(userId).then((items) => {
-      setHistory(items);
-      setHistoryLoading(false);
-    });
-  }, [userId]);
-
-  // Load real chars balance from Supabase
-  useEffect(() => {
-    if (!userId) return;
     const supabase = createClient();
-    supabase
-      .from("users")
-      .select("chars_remaining")
-      .eq("id", userId)
-      .single()
-      .then(({ data }) => {
-        if (data?.chars_remaining !== undefined) {
-          setCharsRemaining(data.chars_remaining);
-        }
-      });
+    setHistoryLoading(true);
+
+    Promise.all([
+      apiUrl
+        ? fetch(`${apiUrl}/api/stats`).then((r) => r.ok ? r.json() : null).catch(() => null)
+        : Promise.resolve(null),
+      listGenerations(userId),
+      supabase.from("users").select("chars_balance").eq("id", userId).single(),
+    ]).then(([statsData, historyItems, { data: profileData }]) => {
+      if (statsData?.videos_processed !== undefined) setVideosProcessed(statsData.videos_processed);
+      setHistory(historyItems);
+      setHistoryLoading(false);
+      if (profileData?.chars_balance !== undefined) setCharsRemaining(profileData.chars_balance);
+    });
   }, [userId]);
 
   const refreshHistory = () => {
@@ -174,8 +161,12 @@ export default function Dashboard() {
           setCharsRemaining(event.chars_remaining);
           setVideosProcessed(event.videos_processed);
           setStep(4);
-          // Refresh history after a short delay to let the backend save
-          setTimeout(() => refreshHistory(), HISTORY_REFRESH_DELAY_MS);
+          // Use generation_id to immediately prepend the new item without a delay
+          if (event.generation_id) {
+            getGeneration(event.generation_id).then((item) => {
+              if (item) setHistory((prev) => [item, ...prev.filter((h) => h.id !== item.id)]);
+            });
+          }
         } else if (event.type === "error") {
           setIsStreaming(false);
           setLoading(false);

@@ -24,7 +24,7 @@ const dashboardNavLinks = [
 
 interface NavbarProps {
   variant?: "landing" | "dashboard";
-  charsRemaining?: number;
+  charsRemaining?: number | null;
   onStartOver?: () => void;
 }
 
@@ -119,7 +119,7 @@ export default function Navbar({ variant = "landing", charsRemaining, onStartOve
             <div className="px-3 py-1.5 glass rounded-full text-xs text-slate-400">
               Chars remaining:{" "}
               <span className="text-emerald-400 font-semibold">
-                {(charsRemaining ?? 0).toLocaleString()}
+                {charsRemaining == null ? "—" : charsRemaining.toLocaleString()}
               </span>
             </div>
           )}
@@ -260,7 +260,7 @@ export default function Navbar({ variant = "landing", charsRemaining, onStartOve
                   <div className="px-3 py-1.5 glass rounded-full text-xs text-slate-400 text-center">
                     Chars remaining:{" "}
                     <span className="text-emerald-400 font-semibold">
-                      {(charsRemaining ?? 0).toLocaleString()}
+                      {charsRemaining == null ? "—" : charsRemaining.toLocaleString()}
                     </span>
                   </div>
                   <button

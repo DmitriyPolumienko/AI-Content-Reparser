@@ -4,7 +4,7 @@ import threading
 import time
 from typing import AsyncGenerator, Optional
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 from app.logging_config import request_id_var
@@ -80,7 +80,7 @@ def _extract_title(content_json: str, content_type: str) -> Optional[str]:
 
 
 @router.post("/generate", response_model=GenerateResponse)
-def generate(request: GenerateRequest, http_request: Request):
+def generate(request: GenerateRequest, http_request: Request, background_tasks: BackgroundTasks):
     """
     Generate formatted content from a transcript (non-streaming).
 
@@ -154,14 +154,8 @@ def generate(request: GenerateRequest, http_request: Request):
         chars_used = input_chars + output_chars
         chars_remaining = balance_service.deduct_balance(request.user_id, chars_used)
 
-        db_count = _db_increment_videos_processed()
-        if db_count is not None:
-            videos_processed = db_count
-            global _generation_count
-            with _generation_count_lock:
-                _generation_count = db_count
-        else:
-            videos_processed = _increment_generation_count()
+        videos_processed = _increment_generation_count()
+        background_tasks.add_task(_db_increment_videos_processed)
 
         logger.info(
             "generate completed",
@@ -299,8 +293,8 @@ async def generate_stream(request: GenerateRequest, http_request: Request):
 
         db_count = _db_increment_videos_processed()
         if db_count is not None:
-            videos_processed = db_count
             global _generation_count
+            videos_processed = db_count
             with _generation_count_lock:
                 _generation_count = db_count
         else:

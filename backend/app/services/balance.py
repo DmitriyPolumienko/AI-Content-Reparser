@@ -17,45 +17,29 @@ Overage:
 """
 
 import datetime
+import logging
 import sys
 from typing import Any, Dict
 
 from app.services.plan_config import PLAN_LIMITS, PlanLimits, get_period_start_utc
 
-# ---------------------------------------------------------------------------
-# TEMPORARY – remove once user roles / account features are fully implemented.
-# ⚠️  NON-PRODUCTION ONLY: this bypass is safe because "mock-user-123" is a
-#     hard-coded mock user that only exists in the in-memory MOCK_USERS store
-#     used during local development / staging.  It must be removed before any
-#     real user-authentication system is wired up.
-# This user ID bypasses all per-request and period symbol limits so that
-# full end-to-end generation can be tested without hitting the free-plan cap.
-# To revert: delete this block and all three "_is_unlimited_user" branches below.
-# ---------------------------------------------------------------------------
-_TESTING_UNLIMITED_USER_ID = "mock-user-123"
-_UNLIMITED_PLAN_LIMITS = PlanLimits(
-    name="Unlimited (testing)",
-    price_per_month=0.0,
-    period="daily",  # required field; never evaluated for this user (bypassed early)
-    period_limit=sys.maxsize,
-    max_input_chars=sys.maxsize,
-    max_output_chars=sys.maxsize,
-    overage_allowed=True,
-    overage_cap_multiplier=None,
-    video_minutes_tooltip="Unlimited (testing)",
-)
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Mock user store
-# Each entry maps user_id → { plan, chars_used_in_period, period_start }
+# Local-dev fallback store (used only when Supabase client is not configured)
+# Keyed by user_id; initialised with free plan defaults on first access.
 # ---------------------------------------------------------------------------
-MOCK_USERS: Dict[str, Dict[str, Any]] = {
-    "mock-user-123": {
-        "plan": "free",
-        "chars_used_in_period": 0,
-        "period_start": None,  # initialised on first access
-    },
-}
+_LOCAL_USERS: Dict[str, Dict[str, Any]] = {}
+
+
+def _get_local_user(user_id: str) -> Dict[str, Any]:
+    if user_id not in _LOCAL_USERS:
+        _LOCAL_USERS[user_id] = {
+            "plan": "free",
+            "chars_used_in_period": 0,
+            "period_start": None,
+        }
+    return _LOCAL_USERS[user_id]
 
 
 # ---------------------------------------------------------------------------
@@ -87,29 +71,52 @@ def _ensure_period(user: Dict[str, Any]) -> None:
         user["period_start"] = period_start
 
 
+def _fetch_user_from_db(user_id: str) -> Dict[str, Any] | None:
+    """Return the user row dict from Supabase or None if not configured/not found."""
+    from app.services.database import _get_client  # local import to avoid circular
+    client = _get_client()
+    if client is None:
+        return None
+    try:
+        response = (
+            client.table("users")
+            .select("plan, chars_used_in_period, period_start")
+            .eq("id", user_id)
+            .single()
+            .execute()
+        )
+        return response.data if response.data else None
+    except Exception as exc:
+        logger.error("balance: failed to fetch user '%s' from Supabase: %s", user_id, exc)
+        return None
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
 def get_plan_limits(user_id: str) -> PlanLimits:
     """Return the PlanLimits for the given user."""
-    # TEMPORARY: bypass all limits for the test user (see _TESTING_UNLIMITED_USER_ID).
-    if user_id == _TESTING_UNLIMITED_USER_ID:
-        return _UNLIMITED_PLAN_LIMITS
-    user = MOCK_USERS.get(user_id)
-    if user is None:
-        raise ValueError(f"User '{user_id}' not found.")
+    row = _fetch_user_from_db(user_id)
+    if row is not None:
+        return _get_plan(row)
+    # Supabase not configured — local dev fallback
+    logger.warning("balance: Supabase not configured, using local-dev fallback for user '%s'", user_id)
+    user = _get_local_user(user_id)
     return _get_plan(user)
 
 
 def get_balance(user_id: str) -> int:
     """Return the number of symbols remaining for the user in the current period."""
-    # TEMPORARY: bypass all limits for the test user (see _TESTING_UNLIMITED_USER_ID).
-    if user_id == _TESTING_UNLIMITED_USER_ID:
-        return sys.maxsize
-    user = MOCK_USERS.get(user_id)
-    if user is None:
-        raise ValueError(f"User '{user_id}' not found.")
+    row = _fetch_user_from_db(user_id)
+    if row is not None:
+        _ensure_period(row)
+        plan = _get_plan(row)
+        used = row.get("chars_used_in_period", 0) or 0
+        return max(0, _effective_limit(plan) - used)
+    # Supabase not configured — local dev fallback
+    logger.warning("balance: Supabase not configured, using local-dev fallback for user '%s'", user_id)
+    user = _get_local_user(user_id)
     _ensure_period(user)
     plan = _get_plan(user)
     used = user["chars_used_in_period"]
@@ -127,12 +134,55 @@ def deduct_balance(user_id: str, chars_used: int) -> int:
     - Free plan has exhausted its period limit (no overage)
     - Pro/Enterprise has exhausted the overage cap
     """
-    # TEMPORARY: bypass all limits for the test user (see _TESTING_UNLIMITED_USER_ID).
-    if user_id == _TESTING_UNLIMITED_USER_ID:
-        return sys.maxsize
-    user = MOCK_USERS.get(user_id)
-    if user is None:
-        raise ValueError(f"User '{user_id}' not found.")
+    from app.services.database import _get_client  # local import to avoid circular
+    client = _get_client()
+
+    if client is not None:
+        # Fetch current state for limit checks
+        row = _fetch_user_from_db(user_id)
+        if row is None:
+            raise ValueError(f"User '{user_id}' not found.")
+        _ensure_period(row)
+        plan = _get_plan(row)
+        used = row.get("chars_used_in_period", 0) or 0
+        limit = _effective_limit(plan)
+
+        if not plan.overage_allowed and used >= plan.period_limit:
+            raise ValueError(
+                "Symbol limit reached for this period. Please upgrade your plan."
+            )
+        if used + chars_used > limit:
+            raise ValueError(
+                "Symbol limit (including overage cap) reached for this period."
+            )
+
+        # Atomically deduct via Supabase RPC
+        try:
+            period_start = row.get("period_start")
+            if isinstance(period_start, datetime.datetime):
+                period_start_str = period_start.isoformat()
+            else:
+                period_start_str = str(period_start) if period_start else None
+
+            rpc_response = client.rpc(
+                "decrement_user_chars",
+                {
+                    "p_user_id": user_id,
+                    "p_chars_used": chars_used,
+                    "p_period_start": period_start_str,
+                },
+            ).execute()
+            new_used = used + chars_used
+            return max(0, limit - new_used)
+        except Exception as exc:
+            logger.error("balance: RPC decrement_user_chars failed for '%s': %s", user_id, exc)
+            # Fall through to local update estimate
+            new_used = used + chars_used
+            return max(0, limit - new_used)
+
+    # Supabase not configured — local dev fallback
+    logger.warning("balance: Supabase not configured, using local-dev fallback for user '%s'", user_id)
+    user = _get_local_user(user_id)
     _ensure_period(user)
     plan = _get_plan(user)
     used = user["chars_used_in_period"]

@@ -18,7 +18,7 @@ client = OpenAI(
     timeout=120.0,
 )
 
-MODEL = "gpt-5.4-nano"
+MODEL = settings.openai_model
 
 # ---------------------------------------------------------------------------
 # Tone of voice descriptions (injected into prompts)
