@@ -205,7 +205,7 @@ export default function Dashboard() {
 
   const handlePurchase = (pkg: SymbolPackage) => {
     // Mock: add symbols to balance display
-    setCharsRemaining((prev) => prev + pkg.symbols);
+    setCharsRemaining((prev) => (prev ?? 0) + pkg.symbols);
   };
 
   const handleHistoryItemClick = async (item: GenerationHistoryItem) => {
