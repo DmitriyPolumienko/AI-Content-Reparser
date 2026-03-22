@@ -10,7 +10,13 @@ import Button from "@/components/ui/Button";
 
 type Step = "idle" | "enrolling" | "verifying" | "enabled";
 
-export default function SecuritySettings() {
+interface SecuritySettingsProps {
+  email: string;
+  userId: string;
+  createdAt: string;
+}
+
+export default function SecuritySettings({ email, userId, createdAt }: SecuritySettingsProps) {
   const [step, setStep] = useState<Step>("idle");
   const [qrUri, setQrUri] = useState("");
   const [factorId, setFactorId] = useState("");
@@ -94,7 +100,30 @@ export default function SecuritySettings() {
   };
 
   return (
-    <div className="glass-card p-6">
+    <div className="flex flex-col gap-6">
+      {/* Account Details */}
+      <div className="glass-card p-6">
+        <p className="text-xs uppercase tracking-widest text-slate-500 mb-4">Account Details</p>
+        <div className="flex flex-col gap-3">
+          <div>
+            <span className="text-xs text-slate-500">User ID</span>
+            <p className="text-sm text-slate-300 font-mono mt-0.5 break-all">{userId}</p>
+          </div>
+          <div>
+            <span className="text-xs text-slate-500">Email</span>
+            <p className="text-sm text-white mt-0.5">{email}</p>
+          </div>
+          <div>
+            <span className="text-xs text-slate-500">Member Since</span>
+            <p className="text-sm text-slate-300 mt-0.5">
+              {new Date(createdAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* 2FA */}
+      <div className="glass-card p-6">
       <p className="text-xs uppercase tracking-widest text-slate-500 mb-4">
         Two-Factor Authentication (2FA)
       </p>
@@ -192,6 +221,7 @@ export default function SecuritySettings() {
           </motion.div>
         )}
       </AnimatePresence>
+      </div>
     </div>
   );
 }
