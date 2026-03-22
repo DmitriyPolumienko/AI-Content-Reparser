@@ -29,8 +29,8 @@ export default async function ProfilePage() {
         charsBalance={profile?.chars_balance ?? 0}
       />
       <div className="border-t border-white/5 pt-8">
-        <h2 className="font-display text-lg font-semibold text-white mb-6">Account Details</h2>
-        <ProfileForm email={user.email ?? ""} userId={user.id} />
+        <h2 className="font-display text-lg font-semibold text-white mb-6">Update Email</h2>
+        <ProfileForm email={user.email ?? ""} />
       </div>
     </div>
   );

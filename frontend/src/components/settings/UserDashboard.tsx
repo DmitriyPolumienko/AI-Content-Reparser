@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   AreaChart,
@@ -233,12 +233,19 @@ export default function UserDashboard({
 
   // Fix 5 — date range state
   const [dateRange, setDateRange] = useState<DateRange>("30D");
+  const [chartLoading, setChartLoading] = useState(false);
 
-  const filteredUsageData = dateRange === "7D"
-    ? USAGE_DATA.slice(-7)
-    : dateRange === "14D"
-    ? USAGE_DATA.slice(-14)
-    : USAGE_DATA;
+  const handleDateRangeChange = (r: DateRange) => {
+    setChartLoading(true);
+    setDateRange(r);
+    setTimeout(() => setChartLoading(false), 150);
+  };
+
+  const filteredUsageData = useMemo(() => {
+    if (dateRange === "7D") return USAGE_DATA.slice(-7);
+    if (dateRange === "14D") return USAGE_DATA.slice(-14);
+    return USAGE_DATA;
+  }, [dateRange]);
 
   // Fix 9 — accordion state
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -300,7 +307,7 @@ export default function UserDashboard({
             {(["7D", "14D", "30D"] as DateRange[]).map((r) => (
               <button
                 key={r}
-                onClick={() => setDateRange(r)}
+                onClick={() => handleDateRangeChange(r)}
                 className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all ${
                   dateRange === r
                     ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
@@ -312,36 +319,43 @@ export default function UserDashboard({
             ))}
           </div>
         </div>
-        <ResponsiveContainer width="100%" height={160}>
-          <AreaChart data={filteredUsageData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-            <defs>
-              <linearGradient id="usageGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#10B981" stopOpacity={0.3} />
-                <stop offset="100%" stopColor="#10B981" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <XAxis
-              dataKey="date"
-              tick={{ fill: "#64748b", fontSize: 10 }}
-              axisLine={false}
-              tickLine={false}
-              interval={dateRange === "7D" ? 1 : 3}
-            />
-            <YAxis
-              tick={{ fill: "#64748b", fontSize: 10 }}
-              axisLine={false}
-              tickLine={false}
-            />
-            <Tooltip content={<AreaTooltip />} />
-            <Area
-              type="monotone"
-              dataKey="chars"
-              stroke="#10B981"
-              strokeWidth={2}
-              fill="url(#usageGradient)"
-            />
-          </AreaChart>
-        </ResponsiveContainer>
+        <div className="relative">
+          <ResponsiveContainer width="100%" height={160}>
+            <AreaChart data={filteredUsageData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+              <defs>
+                <linearGradient id="usageGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#10B981" stopOpacity={0.3} />
+                  <stop offset="100%" stopColor="#10B981" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <XAxis
+                dataKey="date"
+                tick={{ fill: "#64748b", fontSize: 10 }}
+                axisLine={false}
+                tickLine={false}
+                interval={dateRange === "7D" ? 1 : 3}
+              />
+              <YAxis
+                tick={{ fill: "#64748b", fontSize: 10 }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <Tooltip content={<AreaTooltip />} />
+              <Area
+                type="monotone"
+                dataKey="chars"
+                stroke="#10B981"
+                strokeWidth={2}
+                fill="url(#usageGradient)"
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+          {chartLoading && (
+            <div className="absolute inset-0 bg-[#0d1117]/60 rounded-xl flex items-center justify-center">
+              <div className="w-5 h-5 border-2 border-slate-600 border-t-emerald-400 rounded-full animate-spin" />
+            </div>
+          )}
+        </div>
       </motion.div>
 
       {/* Widget 3 — Donut Chart */}
@@ -399,7 +413,25 @@ export default function UserDashboard({
         </div>
       </motion.div>
 
-      {/* Widget 5 — Recent Activity (full width) */}
+      {/* Widget 5 — Quick Stats */}
+      <motion.div variants={itemVariants} className={CARD}>
+        <p className="text-sm font-semibold text-white mb-4">Quick Stats</p>
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { label: "Total Chars", value: TOTAL_CHARS_PROCESSED.toLocaleString() },
+            { label: "Avg / Day", value: Math.round(TOTAL_CHARS_PROCESSED / 20).toLocaleString() },
+            { label: "Videos", value: "247" },
+            { label: "This Week", value: USAGE_DATA.slice(-7).reduce((s, d) => s + d.chars, 0).toLocaleString() },
+          ].map(({ label, value }) => (
+            <div key={label} className="bg-white/[0.03] rounded-xl p-3 border border-white/[0.06]">
+              <p className="text-xs text-slate-500 mb-1">{label}</p>
+              <p className="text-lg font-bold text-white">{value}</p>
+            </div>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* Widget 6 — Recent Activity (full width) */}
       <motion.div variants={itemVariants} className={`${CARD} md:col-span-3`}>
         <div className="flex items-center justify-between mb-4">
           <p className="text-sm font-semibold text-white">Recent Activity</p>

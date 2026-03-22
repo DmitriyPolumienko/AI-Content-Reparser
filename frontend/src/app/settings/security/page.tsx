@@ -21,7 +21,11 @@ export default async function SecurityPage() {
       <p className="text-slate-400 text-sm mb-8">
         Manage two-factor authentication and security settings.
       </p>
-      <SecuritySettings />
+      <SecuritySettings
+        email={user.email ?? ""}
+        userId={user.id}
+        createdAt={user.created_at}
+      />
     </div>
   );
 }

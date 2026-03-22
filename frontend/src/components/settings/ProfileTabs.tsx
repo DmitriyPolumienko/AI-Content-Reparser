@@ -54,7 +54,7 @@ export default function ProfileTabs({
 
       {/* Tab content */}
       {activeTab === "profile" ? (
-        <ProfileForm email={email} userId={userId} />
+        <ProfileForm email={email} />
       ) : (
         <UserDashboard
           userId={userId}

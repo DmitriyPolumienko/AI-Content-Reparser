@@ -9,10 +9,9 @@ import Button from "@/components/ui/Button";
 
 interface ProfileFormProps {
   email: string;
-  userId: string;
 }
 
-export default function ProfileForm({ email, userId }: ProfileFormProps) {
+export default function ProfileForm({ email }: ProfileFormProps) {
   const [newEmail, setNewEmail] = useState(email);
   const [loading, setLoading] = useState(false);
   const { showToast } = useToast();
@@ -42,21 +41,6 @@ export default function ProfileForm({ email, userId }: ProfileFormProps) {
       transition={{ duration: 0.3 }}
       className="flex flex-col gap-5"
     >
-      {/* Info card */}
-      <div className="glass-card p-6">
-        <p className="text-xs uppercase tracking-widest text-slate-500 mb-4">Account Info</p>
-        <div className="flex flex-col gap-3">
-          <div>
-            <span className="text-xs text-slate-500">User ID</span>
-            <p className="text-sm text-slate-300 font-mono mt-0.5 break-all">{userId}</p>
-          </div>
-          <div>
-            <span className="text-xs text-slate-500">Current Email</span>
-            <p className="text-sm text-white mt-0.5">{email}</p>
-          </div>
-        </div>
-      </div>
-
       {/* Update email card */}
       <div className="glass-card p-6">
         <p className="text-xs uppercase tracking-widest text-slate-500 mb-4">Update Email</p>
