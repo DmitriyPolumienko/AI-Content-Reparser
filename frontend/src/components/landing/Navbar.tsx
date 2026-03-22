@@ -144,7 +144,9 @@ export default function Navbar({ variant = "landing", charsRemaining, onStartOve
                       className="flex items-center gap-2 focus:outline-none"
                       aria-label="User menu"
                     >
-                      <UserEmailBadge email={userEmail} />
+                      <div className="w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 text-sm font-semibold">
+                        {userName?.[0]?.toUpperCase() ?? "U"}
+                      </div>
                     </button>
 
                   <AnimatePresence>
