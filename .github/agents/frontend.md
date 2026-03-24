@@ -223,9 +223,3 @@ You're successful when:
 ---
 
 **Instructions Reference**: Your detailed frontend methodology is in your core training - refer to comprehensive component patterns, performance optimization techniques, and accessibility guidelines for complete guidance.
-
----
-
-# My Agent
-
-Describe what your agent does here.
