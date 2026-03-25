@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import BillingSettings from "@/components/settings/BillingSettings";
+import { computeCharsRemaining } from "@/lib/plans";
 
 export const dynamic = "force-dynamic";
 
@@ -22,15 +23,8 @@ export default async function BillingPage() {
     .eq("id", user.id)
     .single();
 
-  // Compute chars remaining from plan limits and usage
   const plan = profile?.plan ?? "free";
-  const PLAN_PERIOD_LIMITS: Record<string, number> = { free: 18_000, pro: 90_000, enterprise: 360_000 };
-  const PLAN_OVERAGE: Record<string, number> = { pro: 5, enterprise: 5 };
-  const periodLimit = PLAN_PERIOD_LIMITS[plan] ?? 18_000;
-  const overageMult = PLAN_OVERAGE[plan];
-  const effectiveLimit = overageMult ? periodLimit * (1 + overageMult) : periodLimit;
-  const used = profile?.chars_used_in_period ?? 0;
-  const charsBalance = Math.max(0, effectiveLimit - used);
+  const charsBalance = computeCharsRemaining(plan, profile?.chars_used_in_period ?? 0);
 
   return (
     <div className="max-w-3xl">

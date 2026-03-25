@@ -15,20 +15,7 @@ import {
 } from "recharts";
 import { ChevronDown } from "lucide-react";
 import { getGeneration, listGenerations, GenerationHistoryItem } from "@/lib/api";
-
-// ─── Plan config ──────────────────────────────────────────────────────────────
-
-const PLAN_LIMIT: Record<string, number | null> = {
-  free: 18_000,
-  pro: 90_000,
-  enterprise: null,
-};
-
-const PLAN_LABELS: Record<string, string> = {
-  free: "Free",
-  pro: "Pro",
-  enterprise: "Enterprise",
-};
+import { PLAN_PERIOD_LIMITS, PLAN_LABELS } from "@/lib/plans";
 
 // ─── Date range type ──────────────────────────────────────────────────────────
 
@@ -232,7 +219,7 @@ export default function UserDashboard({
   charsBalance,
 }: UserDashboardProps) {
   const planLabel = PLAN_LABELS[plan] ?? plan;
-  const planLimit = PLAN_LIMIT[plan] ?? null;
+  const planLimit = PLAN_PERIOD_LIMITS[plan] ?? null;
 
   const usedPercent =
     planLimit !== null && planLimit > 0
