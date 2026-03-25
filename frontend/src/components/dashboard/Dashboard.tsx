@@ -17,14 +17,13 @@ import Navbar from "@/components/landing/Navbar";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import ErrorState from "@/components/ui/ErrorState";
 import { streamGenerateContent, listGenerations, getGeneration, SymbolPackage, GenerationHistoryItem } from "@/lib/api";
-import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/hooks/useUser";
 
 type Step = 1 | 2 | 3 | 4;
 
 const STEPS = [
   { num: 1, label: "Enter URL" },
-  { num: 2, label: "Edit Transcript" },
+  { num: 2, label: "Extract Transcript" },
   { num: 3, label: "Configure" },
   { num: 4, label: "Result" },
 ];
@@ -87,7 +86,6 @@ export default function Dashboard() {
       return;
     }
 
-    const supabase = createClient();
     setHistoryLoading(true);
 
     Promise.all([
@@ -95,12 +93,14 @@ export default function Dashboard() {
         ? fetch(`${apiUrl}/api/stats`).then((r) => r.ok ? r.json() : null).catch(() => null)
         : Promise.resolve(null),
       listGenerations(userId),
-      supabase.from("users").select("chars_balance").eq("id", userId).single(),
-    ]).then(([statsData, historyItems, { data: profileData }]) => {
+      apiUrl
+        ? fetch(`${apiUrl}/api/balance?user_id=${encodeURIComponent(userId)}`).then((r) => r.ok ? r.json() : null).catch(() => null)
+        : Promise.resolve(null),
+    ]).then(([statsData, historyItems, balanceData]) => {
       if (statsData?.videos_processed !== undefined) setVideosProcessed(statsData.videos_processed);
       setHistory(historyItems);
       setHistoryLoading(false);
-      if (profileData?.chars_balance !== undefined) setCharsRemaining(profileData.chars_balance);
+      if (balanceData?.chars_remaining !== undefined) setCharsRemaining(balanceData.chars_remaining);
     });
   }, [userId]);
 
@@ -377,6 +377,10 @@ export default function Dashboard() {
 
                   {step === 2 && (
                     <div className="space-y-5">
+                      <div>
+                        <h3 className="text-sm font-semibold text-white mb-1">Extracted Transcript</h3>
+                        <p className="text-xs text-slate-500">Review and edit the transcript before generating content.</p>
+                      </div>
                       <SubtitleEditor transcript={transcript} onChange={setTranscript} />
                       <div className="flex justify-between pt-2">
                         <button

@@ -18,9 +18,19 @@ export default async function BillingPage() {
   // Fetch subscription info from users table
   const { data: profile } = await supabase
     .from("users")
-    .select("subscription_status, chars_balance, plan")
+    .select("subscription_status, chars_used_in_period, period_start, plan")
     .eq("id", user.id)
     .single();
+
+  // Compute chars remaining from plan limits and usage
+  const plan = profile?.plan ?? "free";
+  const PLAN_PERIOD_LIMITS: Record<string, number> = { free: 18_000, pro: 90_000, enterprise: 360_000 };
+  const PLAN_OVERAGE: Record<string, number> = { pro: 5, enterprise: 5 };
+  const periodLimit = PLAN_PERIOD_LIMITS[plan] ?? 18_000;
+  const overageMult = PLAN_OVERAGE[plan];
+  const effectiveLimit = overageMult ? periodLimit * (1 + overageMult) : periodLimit;
+  const used = profile?.chars_used_in_period ?? 0;
+  const charsBalance = Math.max(0, effectiveLimit - used);
 
   return (
     <div className="max-w-3xl">
@@ -29,9 +39,9 @@ export default async function BillingPage() {
         Manage your subscription and usage.
       </p>
       <BillingSettings
-        currentPlan={profile?.plan ?? "free"}
+        currentPlan={plan}
         subscriptionStatus={profile?.subscription_status ?? null}
-        charsBalance={profile?.chars_balance ?? 0}
+        charsBalance={charsBalance}
       />
     </div>
   );
