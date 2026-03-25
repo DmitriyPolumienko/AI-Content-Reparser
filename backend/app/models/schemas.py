@@ -52,12 +52,10 @@ class ExtractResponse(BaseModel):
 
 class GenerateRequest(BaseModel):
     transcript: str
-    content_type: str  # "seo_article" | "linkedin_post" | "twitter_thread"
+    content_type: str  # "seo_article" | "linkedin_post" | "twitter_thread" | "video_recap"
     keywords: List[str] = []
     user_id: str
-    # TODO(language-prompt): wire this into the generation prompt and per-language
-    # rate-limiting once that feature is implemented.
-    language: Optional[str] = None  # e.g. "en", "ru" – currently stored for future use
+    language: Optional[str] = None  # e.g. "English", "Russian" – injected into generation prompt
     # Tone of voice – validated per content type; defaults to the first option for each type
     tone_of_voice: Optional[str] = None
     # Target character range for content length validation (SEO article only)
@@ -66,6 +64,17 @@ class GenerateRequest(BaseModel):
     # Include Source Link: when True, a CTA + video_url is injected into the output
     include_source_link: bool = False
     video_url: Optional[str] = None
+
+    @field_validator("content_type")
+    @classmethod
+    def _validate_content_type(cls, v: str) -> str:
+        allowed = {"seo_article", "linkedin_post", "twitter_thread", "video_recap"}
+        if v not in allowed:
+            raise ValueError(
+                f"content_type '{v}' is not supported. "
+                f"Valid options: {', '.join(sorted(allowed))}"
+            )
+        return v
 
     @field_validator("user_id")
     @classmethod

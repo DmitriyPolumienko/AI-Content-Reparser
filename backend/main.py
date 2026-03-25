@@ -10,7 +10,7 @@ from slowapi import _rate_limit_exceeded_handler
 
 from app.limiter import limiter
 from app.logging_config import setup_logging, request_id_var
-from app.routers import extract, generate, transcripts, stats, history
+from app.routers import extract, generate, transcripts, stats, history, balance
 
 # Initialise JSON structured logging as early as possible
 setup_logging()
@@ -72,6 +72,7 @@ app.include_router(generate.router, prefix="/api")
 app.include_router(transcripts.router, prefix="/api", tags=["transcripts"])
 app.include_router(stats.router, prefix="/api", tags=["stats"])
 app.include_router(history.router, prefix="/api", tags=["history"])
+app.include_router(balance.router, prefix="/api", tags=["balance"])
 
 
 @app.get("/")

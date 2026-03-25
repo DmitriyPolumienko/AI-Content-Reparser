@@ -50,7 +50,7 @@ TONE_DESCRIPTIONS = {
 SEO_ARTICLE_SYSTEM = """You are an expert SEO content writer. Transform the provided transcript into a well-structured SEO article and return it as a single JSON object.
 
 STRICT SEO RULES (must follow exactly):
-- LANGUAGE: Write ALL content — title, meta_description, headings, paragraphs, FAQ, CTA — in the SAME language as the input transcript. Do NOT use English if the transcript is in another language.
+- LANGUAGE: If the user message specifies an "Output language", write ALL content — title, meta_description, headings, paragraphs, FAQ, CTA — in that language exclusively. Otherwise, use the same language as the input transcript. Do NOT mix languages.
 - H1 (title): 50–60 characters. Must contain the main keyword at the BEGINNING.
 - meta_description: 140–160 characters. Must end with a CTA (call-to-action).
 - Headings: minimum 3 H2 headings. If target_chars > 6000, use minimum 5 headings mixing H2 and H3. No maximum, but logically structured.
@@ -89,7 +89,7 @@ The "list" field is optional per section but at least one section must include i
 LINKEDIN_POST_SYSTEM = """You are a professional LinkedIn content creator. Transform the provided transcript into a compelling LinkedIn post and return it as a single JSON object.
 
 STRICT LINKEDIN RULES (must follow exactly):
-- LANGUAGE: Write ALL content — hook, body, list items, CTA question, hashtags — in the SAME language as the input transcript. Do NOT use English if the transcript is in another language.
+- LANGUAGE: If the user message specifies an "Output language", write ALL content — hook, body, list items, CTA question, hashtags — in that language exclusively. Otherwise, use the same language as the input transcript. Do NOT mix languages.
 - Hook (first line): MAXIMUM 140 characters. Must contain intrigue, a problem, or a bold statement that stops the scroll.
 - Total post length: 1500–3000 characters (count all text: hook + body paragraphs + list items + cta_question + hashtags combined).
 - Paragraphs: maximum 2 sentences each. Use plenty of white space for readability.
@@ -120,7 +120,7 @@ OUTPUT FORMAT — return ONLY this JSON object, no extra text:
 TWITTER_THREAD_SYSTEM = """You are a Twitter/X content creator specializing in viral threads. Transform the provided transcript into an engaging Twitter thread and return it as a single JSON object.
 
 STRICT TWITTER THREAD RULES (must follow exactly):
-- LANGUAGE: Write ALL tweets in the SAME language as the input transcript. Do NOT use English if the transcript is in another language.
+- LANGUAGE: If the user message specifies an "Output language", write ALL tweets in that language exclusively. Otherwise, use the same language as the input transcript. Do NOT mix languages.
 - Tweet count: 5–10 tweets. Choose based on content depth; never pad with filler content.
 - Numbering: MANDATORY. Use "1/" or "1/n" format (e.g. "1/7") at the start of EVERY tweet.
 - Hook tweet (first tweet): Formula: [Result/Problem] + [Promise of value] + 🧵
@@ -310,8 +310,9 @@ def _build_user_message(
 
     if target_min_chars and target_max_chars:
         parts.append(
-            f"Target content length: {target_min_chars}–{target_max_chars} characters "
-            f"(count all characters in sections + FAQ + CTA combined)."
+            f"IMPORTANT — Target content length: {target_min_chars}–{target_max_chars} characters "
+            f"(count all characters in sections + FAQ + CTA combined). "
+            f"This is a hard constraint — your output MUST fall within this range."
         )
 
     if include_source_link and video_url:

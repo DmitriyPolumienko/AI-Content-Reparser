@@ -13,64 +13,9 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import { Zap, ChevronDown } from "lucide-react";
-import { getGeneration } from "@/lib/api";
-
-// ─── Mock data ────────────────────────────────────────────────────────────────
-
-const USAGE_DATA = [
-  { date: "Feb 20", chars: 1200 },
-  { date: "Feb 21", chars: 3400 },
-  { date: "Feb 22", chars: 800 },
-  { date: "Feb 23", chars: 5200 },
-  { date: "Feb 24", chars: 2100 },
-  { date: "Feb 25", chars: 4800 },
-  { date: "Feb 26", chars: 1900 },
-  { date: "Feb 27", chars: 6300 },
-  { date: "Feb 28", chars: 3700 },
-  { date: "Mar 01", chars: 2900 },
-  { date: "Mar 02", chars: 8100 },
-  { date: "Mar 03", chars: 4200 },
-  { date: "Mar 04", chars: 5600 },
-  { date: "Mar 05", chars: 3100 },
-  { date: "Mar 06", chars: 7400 },
-  { date: "Mar 07", chars: 2800 },
-  { date: "Mar 08", chars: 9200 },
-  { date: "Mar 09", chars: 4500 },
-  { date: "Mar 10", chars: 6100 },
-  { date: "Mar 11", chars: 3300 },
-];
-
-const FORMAT_DATA = [
-  { name: "SEO Articles", value: 45, color: "#10B981" },
-  { name: "LinkedIn Posts", value: 30, color: "#8B5CF6" },
-  { name: "Twitter Threads", value: 15, color: "#3B82F6" },
-  { name: "Video Recaps", value: 10, color: "#F59E0B" },
-];
-
-const RECENT_ACTIVITY = [
-  { id: "1", title: "How to Build a SaaS in 30 Days", format: "SEO Article", cost: 3200, date: "2 hours ago", videoUrl: "https://youtube.com" },
-  { id: "2", title: "The Future of AI in Content Creation", format: "LinkedIn Post", cost: 1800, date: "5 hours ago", videoUrl: "https://youtube.com" },
-  { id: "3", title: "10 Productivity Hacks for Developers", format: "Twitter Thread", cost: 950, date: "1 day ago", videoUrl: "https://youtube.com" },
-  { id: "4", title: "Why TypeScript is Worth Learning", format: "Video Recap", cost: 2100, date: "2 days ago", videoUrl: "https://youtube.com" },
-  { id: "5", title: "Building Real-time Apps with Supabase", format: "SEO Article", cost: 4400, date: "3 days ago", videoUrl: "https://youtube.com" },
-];
-
-const TOTAL_CHARS_PROCESSED = USAGE_DATA.reduce((sum, d) => sum + d.chars, 0);
-
-// ─── Plan config ──────────────────────────────────────────────────────────────
-
-const PLAN_LIMIT: Record<string, number | null> = {
-  free: 50_000,
-  pro: 500_000,
-  enterprise: null,
-};
-
-const PLAN_LABELS: Record<string, string> = {
-  free: "Free",
-  pro: "Pro",
-  enterprise: "Enterprise",
-};
+import { ChevronDown } from "lucide-react";
+import { getGeneration, listGenerations, GenerationHistoryItem } from "@/lib/api";
+import { PLAN_PERIOD_LIMITS, PLAN_LABELS } from "@/lib/plans";
 
 // ─── Date range type ──────────────────────────────────────────────────────────
 
@@ -83,6 +28,20 @@ const FORMAT_COLORS: Record<string, string> = {
   "LinkedIn Post": "bg-violet-500/10 text-violet-400 border-violet-500/20",
   "Twitter Thread": "bg-blue-500/10 text-blue-400 border-blue-500/20",
   "Video Recap": "bg-amber-500/10 text-amber-400 border-amber-500/20",
+};
+
+const FORMAT_LABEL: Record<string, string> = {
+  seo_article: "SEO Article",
+  linkedin_post: "LinkedIn Post",
+  twitter_thread: "Twitter Thread",
+  video_recap: "Video Recap",
+};
+
+const PIE_COLORS: Record<string, string> = {
+  "SEO Articles": "#10B981",
+  "LinkedIn Posts": "#8B5CF6",
+  "Twitter Threads": "#3B82F6",
+  "Video Recaps": "#F59E0B",
 };
 
 // ─── Animation variants ───────────────────────────────────────────────────────
@@ -123,13 +82,6 @@ function useCountUp(target: number, duration = 1500) {
 
 const CARD = "bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5 hover:border-white/[0.15] transition-all duration-300";
 
-const FORMAT_BADGE_COLORS: Record<string, string> = {
-  "SEO Article": "bg-emerald-500/15 text-emerald-400",
-  "LinkedIn Post": "bg-violet-500/15 text-violet-400",
-  "Twitter Thread": "bg-blue-500/15 text-blue-400",
-  "Video Recap": "bg-amber-500/15 text-amber-400",
-};
-
 // ─── Custom recharts tooltips ─────────────────────────────────────────────────
 
 function AreaTooltip({ active, payload, label }: {
@@ -142,7 +94,7 @@ function AreaTooltip({ active, payload, label }: {
     <div className="bg-[#0d1117] border border-white/10 rounded-xl px-3 py-2">
       <p className="text-xs text-slate-400 mb-1">{label}</p>
       <p className="text-sm font-semibold text-white">
-        {payload[0].value.toLocaleString()} Chars
+        {payload[0].value.toLocaleString()} Generations
       </p>
     </div>
   );
@@ -200,6 +152,52 @@ function CircularProgress({ percent }: { percent: number }) {
   );
 }
 
+// ─── Helper: compute stats from real generation history ───────────────────────
+
+function computeUsageData(items: GenerationHistoryItem[]): { date: string; count: number }[] {
+  const byDate: Record<string, number> = {};
+  for (const item of items) {
+    const d = new Date(item.created_at);
+    const key = d.toLocaleDateString("en-US", { month: "short", day: "2-digit" });
+    byDate[key] = (byDate[key] ?? 0) + 1;
+  }
+  return Object.entries(byDate)
+    .map(([date, count]) => ({ date, count }))
+    .sort((a, b) => {
+      const da = new Date(a.date + " 2025");
+      const db = new Date(b.date + " 2025");
+      return da.getTime() - db.getTime();
+    });
+}
+
+function computeFormatData(items: GenerationHistoryItem[]): { name: string; value: number; color: string }[] {
+  const counts: Record<string, number> = {};
+  for (const item of items) {
+    const label = FORMAT_LABEL[item.content_type] ?? item.content_type;
+    const pluralLabel = label.endsWith("s") ? label : label + "s";
+    counts[pluralLabel] = (counts[pluralLabel] ?? 0) + 1;
+  }
+  const total = items.length || 1;
+  return Object.entries(counts).map(([name, count]) => ({
+    name,
+    value: Math.round((count / total) * 100),
+    color: PIE_COLORS[name] ?? "#64748B",
+  }));
+}
+
+function formatRelativeDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffMin = Math.floor(diffMs / 60_000);
+  if (diffMin < 60) return `${diffMin} min ago`;
+  const diffHrs = Math.floor(diffMin / 60);
+  if (diffHrs < 24) return `${diffHrs} hour${diffHrs > 1 ? "s" : ""} ago`;
+  const diffDays = Math.floor(diffHrs / 24);
+  if (diffDays < 30) return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface UserDashboardProps {
@@ -214,11 +212,14 @@ interface UserDashboardProps {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function UserDashboard({
+  userId,
+  email,
+  createdAt,
   plan,
   charsBalance,
 }: UserDashboardProps) {
   const planLabel = PLAN_LABELS[plan] ?? plan;
-  const planLimit = PLAN_LIMIT[plan] ?? null;
+  const planLimit = PLAN_PERIOD_LIMITS[plan] ?? null;
 
   const usedPercent =
     planLimit !== null && planLimit > 0
@@ -228,10 +229,24 @@ export default function UserDashboard({
   const lowBalance = planLimit !== null && charsBalance < planLimit * 0.1;
 
   const animatedBalance = useCountUp(charsBalance);
-  const timeSaved = Math.round((TOTAL_CHARS_PROCESSED / 1000) * 0.5);
-  const animatedTimeSaved = useCountUp(timeSaved);
 
-  // Fix 5 — date range state
+  // Fetch real generation history
+  const [historyItems, setHistoryItems] = useState<GenerationHistoryItem[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
+
+  useEffect(() => {
+    if (!userId) { setHistoryLoading(false); return; }
+    listGenerations(userId, 100).then((items) => {
+      setHistoryItems(items);
+      setHistoryLoading(false);
+    });
+  }, [userId]);
+
+  const usageData = useMemo(() => computeUsageData(historyItems), [historyItems]);
+  const formatData = useMemo(() => computeFormatData(historyItems), [historyItems]);
+  const totalGenerations = historyItems.length;
+
+  // Date range state
   const [dateRange, setDateRange] = useState<DateRange>("30D");
   const [chartLoading, setChartLoading] = useState(false);
 
@@ -242,12 +257,12 @@ export default function UserDashboard({
   };
 
   const filteredUsageData = useMemo(() => {
-    if (dateRange === "7D") return USAGE_DATA.slice(-7);
-    if (dateRange === "14D") return USAGE_DATA.slice(-14);
-    return USAGE_DATA;
-  }, [dateRange]);
+    if (dateRange === "7D") return usageData.slice(-7);
+    if (dateRange === "14D") return usageData.slice(-14);
+    return usageData;
+  }, [dateRange, usageData]);
 
-  // Fix 9 — accordion state
+  // Accordion state for recent activity
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [contentCache, setContentCache] = useState<Record<string, string | null>>({});
   const [loadingContent, setLoadingContent] = useState<string | null>(null);
@@ -263,6 +278,7 @@ export default function UserDashboard({
   };
 
   const displayBalance = animatedBalance;
+  const memberSince = new Date(createdAt).toLocaleDateString("en-US", { month: "long", year: "numeric" });
 
   return (
     <motion.div
@@ -343,7 +359,7 @@ export default function UserDashboard({
               <Tooltip content={<AreaTooltip />} />
               <Area
                 type="monotone"
-                dataKey="chars"
+                dataKey="count"
                 stroke="#10B981"
                 strokeWidth={2}
                 fill="url(#usageGradient)"
@@ -361,54 +377,60 @@ export default function UserDashboard({
       {/* Widget 3 — Donut Chart */}
       <motion.div variants={itemVariants} className={CARD}>
         <p className="text-sm font-semibold text-white mb-3">Formats Generated</p>
-        <ResponsiveContainer width="100%" height={180}>
-          <PieChart>
-            <Pie
-              data={FORMAT_DATA}
-              cx="50%"
-              cy="50%"
-              innerRadius={55}
-              outerRadius={80}
-              dataKey="value"
-              strokeWidth={0}
-            >
-              {FORMAT_DATA.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
+        {formatData.length > 0 ? (
+          <>
+            <ResponsiveContainer width="100%" height={180}>
+              <PieChart>
+                <Pie
+                  data={formatData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={55}
+                  outerRadius={80}
+                  dataKey="value"
+                  strokeWidth={0}
+                >
+                  {formatData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip content={<PieTooltip />} />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="flex flex-col gap-1.5 mt-1">
+              {formatData.map((item) => (
+                <div key={item.name} className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ background: item.color }} />
+                    <span className="text-slate-400">{item.name}</span>
+                  </div>
+                  <span className="text-slate-300 font-medium">{item.value}%</span>
+                </div>
               ))}
-            </Pie>
-            <Tooltip content={<PieTooltip />} />
-          </PieChart>
-        </ResponsiveContainer>
-        <div className="flex flex-col gap-1.5 mt-1">
-          {FORMAT_DATA.map((item) => (
-            <div key={item.name} className="flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: item.color }} />
-                <span className="text-slate-400">{item.name}</span>
-              </div>
-              <span className="text-slate-300 font-medium">{item.value}%</span>
             </div>
-          ))}
-        </div>
+          </>
+        ) : (
+          <div className="flex items-center justify-center h-[180px] text-sm text-slate-500">
+            No generations yet
+          </div>
+        )}
       </motion.div>
 
-      {/* Widget 4 — Time Saved */}
+      {/* Widget 4 — Account Info */}
       <motion.div variants={itemVariants} className={CARD}>
-        <p className="text-sm font-semibold text-white mb-4">Time Saved (Est.)</p>
-        <div className="flex items-center gap-4 mb-4">
-          <div className="relative group inline-block">
-            <div className="p-3 rounded-xl bg-violet-500/10 border border-violet-500/20 cursor-help">
-              <Zap className="w-6 h-6 text-violet-400" style={{ filter: "drop-shadow(0 0 6px #8B5CF6)" }} />
-            </div>
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-[#0d1117] border border-white/10 rounded-lg text-xs text-slate-300 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-              ~0.5h per 1k Chars processed
-            </div>
+        <p className="text-sm font-semibold text-white mb-4">Account</p>
+        <div className="space-y-3">
+          <div>
+            <p className="text-xs text-slate-500">Email</p>
+            <p className="text-sm text-white truncate">{email}</p>
           </div>
           <div>
-            <p className="text-3xl font-bold text-white font-display leading-none">
-              {animatedTimeSaved}
-            </p>
-            <p className="text-xs text-slate-400 mt-1">hours this month</p>
+            <p className="text-xs text-slate-500">Member Since</p>
+            <p className="text-sm text-white">{memberSince}</p>
+          </div>
+          <div>
+            <p className="text-xs text-slate-500">Plan</p>
+            <p className="text-sm text-emerald-400 font-semibold">{planLabel}</p>
           </div>
         </div>
       </motion.div>
@@ -418,10 +440,10 @@ export default function UserDashboard({
         <p className="text-sm font-semibold text-white mb-4">Quick Stats</p>
         <div className="grid grid-cols-2 gap-3">
           {[
-            { label: "Total Chars", value: TOTAL_CHARS_PROCESSED.toLocaleString() },
-            { label: "Avg / Day", value: Math.round(TOTAL_CHARS_PROCESSED / 20).toLocaleString() },
-            { label: "Videos", value: "247" },
-            { label: "This Week", value: USAGE_DATA.slice(-7).reduce((s, d) => s + d.chars, 0).toLocaleString() },
+            { label: "Total Generations", value: totalGenerations.toLocaleString() },
+            { label: "Chars Remaining", value: charsBalance.toLocaleString() },
+            { label: "Plan Limit", value: planLimit !== null ? planLimit.toLocaleString() : "∞" },
+            { label: "Used %", value: `${usedPercent}%` },
           ].map(({ label, value }) => (
             <div key={label} className="bg-white/[0.03] rounded-xl p-3 border border-white/[0.06]">
               <p className="text-xs text-slate-500 mb-1">{label}</p>
@@ -437,22 +459,32 @@ export default function UserDashboard({
           <p className="text-sm font-semibold text-white">Recent Activity</p>
         </div>
 
+        {historyLoading ? (
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-12 bg-white/5 rounded-lg animate-pulse" />
+            ))}
+          </div>
+        ) : historyItems.length === 0 ? (
+          <p className="text-sm text-slate-500 py-4 text-center">No activity yet. Generate your first content!</p>
+        ) : (
         <div>
-          {RECENT_ACTIVITY.map((item) => (
+          {historyItems.slice(0, 10).map((item) => {
+            const formatLabel = FORMAT_LABEL[item.content_type] ?? item.content_type;
+            return (
             <div key={item.id} className="border-b border-white/5 last:border-0">
               <div
                 className="flex items-center justify-between py-3 px-2 hover:bg-white/[0.02] rounded-lg cursor-pointer transition-colors"
                 onClick={() => handleToggle(item.id)}
               >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <span className="text-sm text-slate-300 truncate">{item.title}</span>
-                  <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full border font-medium ${FORMAT_COLORS[item.format] ?? "bg-white/10 text-slate-300 border-white/10"}`}>
-                    {item.format}
+                  <span className="text-sm text-slate-300 truncate">{item.title || "Untitled"}</span>
+                  <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full border font-medium ${FORMAT_COLORS[formatLabel] ?? "bg-white/10 text-slate-300 border-white/10"}`}>
+                    {formatLabel}
                   </span>
                 </div>
                 <div className="flex items-center gap-3 shrink-0 ml-3">
-                  <span className="text-xs text-slate-500 hidden sm:block">- {item.cost.toLocaleString()} Chars</span>
-                  <span className="text-xs text-slate-600">{item.date}</span>
+                  <span className="text-xs text-slate-600">{formatRelativeDate(item.created_at)}</span>
                   <ChevronDown
                     className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${expandedId === item.id ? "rotate-180" : ""}`}
                   />
@@ -487,10 +519,11 @@ export default function UserDashboard({
                 )}
               </AnimatePresence>
             </div>
-          ))}
+            );
+          })}
         </div>
+        )}
       </motion.div>
     </motion.div>
   );
 }
-

@@ -141,12 +141,15 @@ export default function Navbar({ variant = "landing", charsRemaining, onStartOve
                   <div className="relative" ref={dropdownRef}>
                     <button
                       onClick={() => setDropdownOpen((v) => !v)}
-                      className="flex items-center gap-2 focus:outline-none"
+                      className="flex items-center gap-2 px-1.5 py-1 rounded-lg hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all"
                       aria-label="User menu"
                     >
-                      <div className="w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 text-sm font-semibold">
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0" style={{ background: "linear-gradient(135deg, #10B981, #059669)" }}>
                         {userName?.[0]?.toUpperCase() ?? "U"}
                       </div>
+                      <svg className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
                     </button>
 
                   <AnimatePresence>
@@ -156,40 +159,66 @@ export default function Navbar({ variant = "landing", charsRemaining, onStartOve
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -8, scale: 0.96 }}
                         transition={{ duration: 0.15 }}
-                        className="absolute right-0 mt-2 w-56 bg-[#0d1117] border border-white/10 rounded-xl shadow-2xl overflow-hidden"
+                        className="absolute right-0 mt-2 w-64 bg-[#0d1117]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
                       >
                         {/* User info header */}
-                        <div className="px-4 py-3 border-b border-white/5">
-                          <p className="text-sm font-semibold text-white truncate">{userName}</p>
-                          <p className="text-xs text-slate-500 truncate">{userEmail}</p>
+                        <div className="px-4 py-3.5 border-b border-white/5 bg-gradient-to-r from-emerald-500/5 to-transparent">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0" style={{ background: "linear-gradient(135deg, #10B981, #059669)" }}>
+                              {userName?.[0]?.toUpperCase() ?? "U"}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-white truncate">{userName}</p>
+                              <p className="text-xs text-slate-500 truncate">{userEmail}</p>
+                            </div>
+                          </div>
                         </div>
 
                         {/* Menu items */}
-                        <div className="py-1">
+                        <div className="py-1.5">
                           {!isDashboard && (
                             <Link
                               href="/dashboard"
                               onClick={() => setDropdownOpen(false)}
-                              className="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
+                              className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
                             >
-                              <span>🚀</span> Dashboard
+                              <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                              </svg>
+                              Dashboard
                             </Link>
                           )}
                           <Link
                             href="/settings/profile"
                             onClick={() => setDropdownOpen(false)}
-                            className="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
                           >
-                            <span>⚙️</span> Settings
+                            <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                            Profile
+                          </Link>
+                          <Link
+                            href="/settings/billing"
+                            onClick={() => setDropdownOpen(false)}
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
+                          >
+                            <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                            </svg>
+                            Billing
                           </Link>
                         </div>
 
-                        <div className="border-t border-white/5 py-1">
+                        <div className="border-t border-white/5 py-1.5">
                           <button
                             onClick={handleSignOut}
-                            className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/5 transition-colors"
+                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/5 transition-colors"
                           >
-                            <span>→</span> Sign Out
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                            </svg>
+                            Sign Out
                           </button>
                         </div>
                       </motion.div>
